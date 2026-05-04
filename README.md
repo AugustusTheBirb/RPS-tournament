@@ -1,9 +1,9 @@
 # RPS tournament
 A repo for running rock-paper-scissors tournaments with lots of strategies
 
-To submit a strategy fill out this form
+To submit a strategy fill out this [form](https://forms.gle/uk3tAW2y4vxVbxyLA)
 
-Because performance in this tournament depends on the population of other strategies present, there is only one submission allowed per participant.
+**Because performance in this tournament depends on the population of other strategies present, there is only one submission allowed per participant.**
 
 ## What is this tournament
 This is a tournament of rock paper scissors strategies, each strategy will play against every other strategy for 1000 moves, repeated 3x to average out some randomness.
