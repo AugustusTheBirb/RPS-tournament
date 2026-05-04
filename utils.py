@@ -1,11 +1,40 @@
-def convert_to_id(name):
-    if name not in ['rock', 'paper', 'scissors']:
-        raise ValueError('invalid name submitted')
-    d = {'rock' : 0, 'paper' : 1, 'scissors' : 2}
-    return d[name]
+from enum import IntEnum
+from typing import Callable
 
-def convert_to_name(id):
-    if id not in [0, 1, 2]:
-        raise ValueError('invalid id submitted')
-    d = {0 : 'rock', 1 : 'paper', 2 : 'scissors'}
-    return d[id]
+import numpy as np
+from numpy.typing import NDArray
+
+
+class Move(IntEnum):
+    ROCK = 0
+    PAPER = 1
+    SCISSORS = 2
+
+
+MoveHistory = NDArray[np.object_]
+Strategy = Callable[[MoveHistory, MoveHistory], Move]
+
+
+def resolve_moves(move_1: Move, move_2: Move) -> tuple[int, int]:
+    """
+    Gets moves of two players and resolves how player scores will change
+
+    Args:
+        move_1: Move of the first player (rock, paper or scissors)
+        move_2: Move of the second player (rock, paper or scissors)
+    Returns:
+        delta_1: An integer of how will the score of the first player change
+        delta_2: An integer of how will the score of the second player change
+    """
+    result_matrix = [
+        [(0, 0), (-1, 1), (1, -1)],
+        [(1, -1), (0, 0), (-1, 1)],
+        [(-1, 1), (1, -1), (0, 0)],
+    ]
+
+    #    R    P    S
+    # R 0,0  -1,1  1,-1
+    # P 1,-1  0,0  -1,1
+    # S -1,1  1,-1  0,0
+
+    return result_matrix[move_1][move_2]
