@@ -1,0 +1,6 @@
+,paper_only,random_strat,rock_only,rock_or_paper,scissors_only,average_score
+paper_only,0.0,26.3,1000.0,491.3,-1000.0,103.5
+random_strat,-26.3,0.0,-11.7,3.7,12.0,-4.5
+rock_only,-1000.0,11.7,0.0,-496.3,1000.0,-96.9
+rock_or_paper,-491.3,-3.7,496.3,0.0,-26.7,-5.1
+scissors_only,1000.0,-12.0,-1000.0,26.7,0.0,2.9
