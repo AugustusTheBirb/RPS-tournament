@@ -26,23 +26,18 @@ The '**random**' library is imported and functions from it can be used, there ar
 
 An example strategy:
 ```python
-def example_strategy(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+def beats_last(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     """
-    Author: Joe
-
-    A strategy, that plays the opponent strategy last move, always starts
-    with rock
-
-    Args:
-        my_moves: A history of this strategy moves this game
-        opponent_moves: A history of opponent strategy moves this game
-    Returns:
-        A move this strategy will make next
+    Author: Alice
+    Plays the move that beats the last played move
     """
-    if len(opponent_moves) > 0:
-        return opponent_moves[-1]
-    else:
+    if len(opponent_moves) == 0:
         return Move.ROCK
+
+    move_dict = {Move.PAPER : Move.SCISSORS, Move.SCISSORS : Move.ROCK
+                 , Move.ROCK : Move.PAPER}
+
+    return move_dict[opponent_moves[-1]]
 ```
 
 To verify your strategies performace you can clone the repo, add your strategies function to the strategies.py file and run the run_tournament.py file.
