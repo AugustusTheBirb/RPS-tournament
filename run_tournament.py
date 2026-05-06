@@ -62,15 +62,15 @@ def simulate_tournament(
         df_restults: A dataframe of the tournament results
     """
 
-    strategy_index: pd.Index = pd.Index(list(x.__name__ for x in strategy_list))
+    strategy_index: pd.Index = pd.Index(list(x.__name__[6:] for x in strategy_list))
 
     df_results = pd.DataFrame(0, columns=strategy_index, index=strategy_index)
 
     for strategy_1, strategy_2 in combinations(strategy_list, 2):
-        strategy_1_name: str = strategy_1.__name__
+        strategy_1_name: str = strategy_1.__name__[6:]
         total_score_1: int = 0
 
-        strategy_2_name: str = strategy_2.__name__
+        strategy_2_name: str = strategy_2.__name__[6:]
         total_score_2: int = 0
 
         for _ in range(repeat_count):
@@ -93,7 +93,7 @@ def simulate_tournament(
 
 if __name__ == "__main__":
     strategy_list = [
-        obj for _, obj in inspect.getmembers(strategies, inspect.isfunction)
+        obj for name, obj in inspect.getmembers(strategies, inspect.isfunction) if name[:6] == "strat_"
     ]
 
     round_count = 1000

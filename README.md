@@ -26,7 +26,7 @@ The '**random**' library is imported and functions from it can be used, there ar
 
 An example strategy:
 ```python
-def beats_last(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+def strat_beats_last(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     """
     Author: Alice
     Plays the move that beats the last played move

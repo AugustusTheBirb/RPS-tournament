@@ -1,7 +1,7 @@
 import random
 from collections import Counter
 
-from utils import Move, MoveHistory
+from utils import Move, MoveHistory, get_counter
 
 # pyright: reportUnusedParameter=false
 
@@ -14,23 +14,17 @@ Returns:
 """
 
 
-def beats_last(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+def strat_beats_last(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     """
     Plays the move that beats the last played move
     """
     if len(opponent_moves) == 0:
         return Move.ROCK
 
-    move_dict = {
-        Move.PAPER: Move.SCISSORS,
-        Move.SCISSORS: Move.ROCK,
-        Move.ROCK: Move.PAPER,
-    }
-
-    return move_dict[opponent_moves[-1]]
+    return get_counter(opponent_moves[-1])
 
 
-def beats_modal(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+def strat_beats_modal(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     """
     Picks the move that beats the modal move among the opponents moves
     """
@@ -39,16 +33,10 @@ def beats_modal(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
 
     arr = sorted(list(Counter(opponent_moves).items()), key=lambda x: x[1])
 
-    move_dict = {
-        Move.PAPER: Move.SCISSORS,
-        Move.SCISSORS: Move.ROCK,
-        Move.ROCK: Move.PAPER,
-    }
-
-    return move_dict[arr[-1][0]]
+    return get_counter(arr[-1][0])
 
 
-def paper_only(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+def strat_paper_only(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     """
     A primitive and bad strategy, that only plays paper
     """
@@ -56,7 +44,7 @@ def paper_only(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     return Move.PAPER
 
 
-def R2P2S6(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+def strat_R2P2S6(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     """
     Plays randomly in a 2:2:6 ratio
     """
@@ -69,7 +57,7 @@ def R2P2S6(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
         return Move.SCISSORS
 
 
-def random_strat(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+def strat_random_strat(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     """
     A primitive strategy which fully randomizes its moves, it is
     interesting that this strategy is unexploitable, it will have
@@ -79,7 +67,7 @@ def random_strat(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     return random.choice(list(Move))
 
 
-def rock_only(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+def strat_rock_only(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     """
     A primitive and bad strategy, that only plays rock
     """
@@ -87,7 +75,7 @@ def rock_only(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     return Move.ROCK
 
 
-def rock_or_paper(my_move: MoveHistory, opponent_move: MoveHistory) -> Move:
+def strat_rock_or_paper(my_move: MoveHistory, opponent_move: MoveHistory) -> Move:
     """
     A primitive strategy which plays rock or scissors randomly,
     a twist on random_strat, but should be way worse
@@ -96,15 +84,15 @@ def rock_or_paper(my_move: MoveHistory, opponent_move: MoveHistory) -> Move:
     return random.choice([Move.ROCK, Move.PAPER])
 
 
-def RPS_cyclic(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+def strat_RPS_cyclic(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     """
     Plays Rock->Paper->Scissors in a cycle
     """
 
-    return len(my_moves) % 3
+    return  Move(len(my_moves) % 3)
 
 
-def scissors_only(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+def strat_scissors_only(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     """
     A primitive and bad strategy, that only plays scissors
     """
