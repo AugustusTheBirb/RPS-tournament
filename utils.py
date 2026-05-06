@@ -1,8 +1,10 @@
 from enum import IntEnum
-from typing import Callable, Sequence
+from typing import Any, Callable, Sequence
 
 import numpy as np
 from numpy.typing import NDArray
+
+# pyright: reportExplicitAny=false
 
 
 class Move(IntEnum):
@@ -20,7 +22,7 @@ LETTER_TO_MOVE = {v: k for k, v in MOVE_LETTERS.items()}
 
 
 MoveHistory = NDArray[np.object_]
-Strategy = Callable[[MoveHistory, MoveHistory], Move]
+Strategy = Callable[[MoveHistory, MoveHistory, Any | None], tuple[Move, Any | None]]
 
 
 def get_counter(move_to_counter: Move) -> Move:
@@ -53,7 +55,7 @@ def is_suffix[T](base: Sequence[T], suffix: Sequence[T]) -> bool:
     if not suffix:
         return True
 
-    return base[-len(suffix):] == suffix
+    return base[-len(suffix) :] == suffix
 
 
 def move_list_to_str(move_list: list[Move]) -> str:

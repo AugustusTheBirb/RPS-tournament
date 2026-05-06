@@ -1,11 +1,14 @@
 import inspect
 from itertools import combinations
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
 import strategies
 from utils import MoveHistory, Strategy, resolve_moves
+
+# pyright: reportExplicitAny=false
 
 
 def simulate_game(
@@ -25,13 +28,18 @@ def simulate_game(
     """
     strategy_1_history: MoveHistory = np.empty(round_count, dtype=object)
     strategy_1_score = 0
+    context_1: Any | None = None
 
     strategy_2_history: MoveHistory = np.empty(round_count, dtype=object)
     strategy_2_score = 0
-
+    context_2: Any | None = None
     for i in range(round_count):
-        move_1 = strategy_1(strategy_1_history[:i], strategy_2_history[:i])
-        move_2 = strategy_2(strategy_2_history[:i], strategy_1_history[:i])
+        move_1, context_1 = strategy_1(
+            strategy_1_history[:i], strategy_2_history[:i], context_1
+        )
+        move_2, context_2 = strategy_2(
+            strategy_2_history[:i], strategy_1_history[:i], context_2
+        )
 
         delta_1, delta_2 = resolve_moves(move_1, move_2)
 
@@ -93,7 +101,9 @@ def simulate_tournament(
 
 if __name__ == "__main__":
     strategy_list = [
-        obj for name, obj in inspect.getmembers(strategies, inspect.isfunction) if name[:6] == "strat_"
+        obj
+        for name, obj in inspect.getmembers(strategies, inspect.isfunction)
+        if name[:6] == "strat_"
     ]
 
     round_count = 1000
