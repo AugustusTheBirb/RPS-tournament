@@ -1,5 +1,6 @@
 import random
 from collections import Counter
+
 from utils import Move, MoveHistory
 
 # pyright: reportUnusedParameter=false
@@ -11,6 +12,7 @@ Args:
 Returns:
     A move this strategy will make next
 """
+
 
 def random_strat(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     """
@@ -83,10 +85,14 @@ def beats_last(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     if len(opponent_moves) == 0:
         return Move.ROCK
 
-    move_dict = {Move.PAPER : Move.SCISSORS, Move.SCISSORS : Move.ROCK
-                 , Move.ROCK : Move.PAPER}
+    move_dict = {
+        Move.PAPER: Move.SCISSORS,
+        Move.SCISSORS: Move.ROCK,
+        Move.ROCK: Move.PAPER,
+    }
 
     return move_dict[opponent_moves[-1]]
+
 
 def beats_modal(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     """
@@ -95,9 +101,12 @@ def beats_modal(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
     if len(opponent_moves) == 0:
         return Move.ROCK
 
-    arr = sorted(list(Counter(opponent_moves).items()), key = lambda x: x[1])
+    arr = sorted(list(Counter(opponent_moves).items()), key=lambda x: x[1])
 
-    move_dict = {Move.PAPER : Move.SCISSORS, Move.SCISSORS : Move.ROCK
-                , Move.ROCK : Move.PAPER}
+    move_dict = {
+        Move.PAPER: Move.SCISSORS,
+        Move.SCISSORS: Move.ROCK,
+        Move.ROCK: Move.PAPER,
+    }
 
     return move_dict[arr[-1][0]]
