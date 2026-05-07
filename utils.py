@@ -3,6 +3,9 @@ from typing import Any, Callable, Sequence
 
 import numpy as np
 from numpy.typing import NDArray
+from typing import TypeVar
+
+_T = TypeVar("_T")
 
 # pyright: reportExplicitAny=false
 
@@ -40,7 +43,7 @@ Strategy = Callable[[MoveHistory, MoveHistory, Any | None], tuple[Move, Any | No
 
 def get_counter(move_to_counter: Move) -> Move:
     """
-    Give a move that counter your move
+    Gives a move that counters the given move
 
     Args:
         move_to_counter: An RPS move you want to beat
@@ -123,7 +126,7 @@ def get_rated_substringss_v1(
     return len(string), sorted_substrings
 
 
-def is_suffix[T](base: Sequence[T], suffix: Sequence[T]) -> bool:
+def is_suffix(base: Sequence[_T], suffix: Sequence[_T]) -> bool:
     """
     Checks if one sequence is a suffix of the other
 

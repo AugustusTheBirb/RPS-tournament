@@ -213,3 +213,20 @@ def strat_scissors_only(
     """
 
     return Move.SCISSORS, None
+
+def strat_beats_op_distribution(
+    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
+) -> tuple[Move, Any | None]:
+    """
+    Plays a move that beats a move randomly chosen from the distribution
+    of opponents moves
+    """
+    if not context:
+        context = {Move.ROCK: 0, Move.PAPER: 0, Move.SCISSORS: 0}
+        return Move(random.randint(0,2)), context
+
+    context[opponent_moves[-1]] += 1
+    n: int = len(opponent_moves)
+    weights: list[float] = list(i/n for i in context.values())
+
+    return get_counter(Move(random.choices([0,1,2], weights=weights, k=1)[0])), context
