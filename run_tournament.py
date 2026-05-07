@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 import strategies
-from utils import MoveHistory, Strategy, resolve_moves
+from utils import MoveHistory, Strategy, move_list_to_str, resolve_moves
 
 # pyright: reportExplicitAny=false
 
@@ -60,6 +60,7 @@ def simulate_game(
         strategy_2_score += delta_2
         strategy_2_history[i] = move_2
 
+
     return (strategy_1_score, strategy_1_time_ms), (
         strategy_2_score,
         strategy_2_time_ms,
@@ -84,10 +85,10 @@ def simulate_tournament(
         df_restults: A dataframe of the tournament results
     """
 
-    strategy_count: int = len(strategy_list)
+    game_count: int = len(strategy_list) - 1
     strategy_index: pd.Index = pd.Index(list(x.__name__[6:] for x in strategy_list))
 
-    df_results = pd.DataFrame(0, columns=strategy_index, index=strategy_index)
+    df_results = pd.DataFrame(None, columns=strategy_index, index=strategy_index)
     df_times = pd.DataFrame(
         0, columns=pd.Index(["avg_time_ms"]), index=strategy_index
     ).astype({"avg_time_ms": float})

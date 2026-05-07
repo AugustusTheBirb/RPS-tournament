@@ -9,6 +9,7 @@ from utils import (LETTER_TO_MOVE, LETTER_TO_MOVE_PAIR, Move, MoveHistory,
 # pyright: reportUnusedParameter=false, reportExplicitAny=false
 
 """
+(Docstring for all strategies)
 Args:
     my_moves: A history of this strategy moves this game
     opponent_moves: A history of opponent strategy moves this game
@@ -69,10 +70,10 @@ def strat_patternmatcher_1d_v1(
     Author: lukassta
     """
     # ========PARAMETERS========
-    MIN_SUBLIST_LENGTH = 2
+    MIN_SUBLIST_LENGTH = 1
     MAX_SUBLIST_LENGTH = 4
     BASE_SUBLIST_SCORE = 1
-    LETTER_SCORE_MULT = 4
+    LETTER_SCORE_MULT = 3
     # ==========================
 
     if context is None:
@@ -80,8 +81,6 @@ def strat_patternmatcher_1d_v1(
 
     opponent_move_string = move_list_to_str(list(opponent_moves))
 
-    # TODO: figure out min_length=1
-    # to top strat_R2P2S6
     context = get_rated_substringss_v1(
         opponent_move_string,
         min_lenght=MIN_SUBLIST_LENGTH,
@@ -117,7 +116,7 @@ def strat_patternmatcher_2d_v1(
     MIN_SUBLIST_LENGTH = 1
     MAX_SUBLIST_LENGTH = 4
     BASE_SUBLIST_SCORE = 2
-    LETTER_SCORE_MULT = 3
+    LETTER_SCORE_MULT = 9
     # ==========================
 
     if context is None:
@@ -126,8 +125,6 @@ def strat_patternmatcher_2d_v1(
     move_pair_list: list[tuple[Move, Move]] = list(zip(my_moves, opponent_moves))
     move_pair_string = move_pair_list_to_str(move_pair_list)
 
-    # TODO: figure out min_length=1
-    # to top strat_R2P2S6
     context = get_rated_substringss_v1(
         move_pair_string,
         min_lenght=MIN_SUBLIST_LENGTH,
