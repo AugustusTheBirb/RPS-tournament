@@ -112,13 +112,13 @@ def simulate_tournament(
             total_time_2 += time_2
 
         df_times.loc[strategy_1_name, "avg_time_ms"] += round(
-            total_time_1 / repeat_count / strategy_count
+            total_time_1 / repeat_count / game_count
         ,2)
         df_results.loc[strategy_1_name, strategy_2_name] = round(
             total_score_1 / repeat_count
         )
         df_times.loc[strategy_2_name, "avg_time_ms"] += round(
-            total_time_2 / repeat_count / strategy_count
+            total_time_2 / repeat_count / game_count
         ,2)
         df_results.loc[strategy_2_name, strategy_1_name] = round(
             total_score_2 / repeat_count
