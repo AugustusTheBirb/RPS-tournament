@@ -60,8 +60,8 @@ def get_rated_substringss_v1(
     *,
     min_lenght: int,
     max_lenght: int,
-    base_score: int,
-    letter_score_mult: int,
+    base_score: float,
+    letter_score_mult: float,
     context: tuple[int, dict[str, float]],
 ) -> tuple[int, dict[str, float]]:
     """
@@ -98,13 +98,13 @@ def get_rated_substringss_v1(
     evaluated_moves: int = context[0]
     scored_substrings: dict[str, float] = context[1]
 
-    for i in range(evaluated_moves, len(string)):
+    for i in range(evaluated_moves, len(string) + 1):
         for letter_count in range(min_lenght, max_lenght + 1):
-            if i - letter_count <= 0:
+            if i - letter_count < 0:
                 continue
 
             substring = string[i - letter_count : i]
-            score = base_score + letter_score_mult ^ letter_count
+            score = base_score + letter_score_mult ** letter_count
 
             if scored_substrings.__contains__(substring):
                 scored_substrings[substring] += score
@@ -190,7 +190,7 @@ def resolve_moves(move_1: Move, move_2: Move) -> tuple[int, int]:
     return result_matrix[move_1][move_2]
 
 
-def str_to_move_list(string: str) -> list[tuple[Move, Move]]:
+def str_to_move_list(string: str) -> list[Move]:
     """
     Converts a string into a move list
 
