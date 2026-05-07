@@ -4,7 +4,7 @@ from typing import Any
 
 from utils import (LETTER_TO_MOVE, LETTER_TO_MOVE_PAIR, Move, MoveHistory,
                    get_counter, get_rated_substringss_v1, is_suffix,
-                   move_list_to_str, move_pair_list_to_str)
+                   move_list_to_str, move_pair_list_to_str, resolve_move_lists)
 
 # pyright: reportUnusedParameter=false, reportExplicitAny=false
 
@@ -32,6 +32,26 @@ def strat_beats_last(
 
     return get_counter(opponent_moves[-1]), None
 
+def strat_beats_last_meta1(
+    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
+) -> tuple[Move, Any | None]:
+    """
+    Plays the move that beats the move that beats the last played move
+    """
+    meta_flag: bool = False
+    if len(opponent_moves) == 0:
+        return random.choice(list(Move)), None
+
+    if len(opponent_moves) >= 50:
+        my_score_50 = resolve_move_lists(my_moves[-50:-1], opponent_moves[-50:-1])[0]
+        if my_score_50 < -25:
+            meta_flag = True
+    move_beats_last: Move = get_counter(opponent_moves[-1])
+
+    if meta_flag:
+        return get_counter(move_beats_last), None
+    else:
+        return move_beats_last, None
 
 def strat_beats_modal(
     my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None

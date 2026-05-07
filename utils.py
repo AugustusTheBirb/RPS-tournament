@@ -192,6 +192,26 @@ def resolve_moves(move_1: Move, move_2: Move) -> tuple[int, int]:
 
     return result_matrix[move_1][move_2]
 
+def resolve_move_lists(moves_1: list[Move], moves_2: list[Move]) -> tuple[int, int]:
+    """
+    Gets move lists of two players and resolves how player scores will change
+
+    Args:
+        moves_1: Moves of the first player (rock, paper or scissors)
+        moves_2: Moves of the second player (rock, paper or scissors)
+    Returns:
+        delta_1: An integer of how will the score of the first player change
+        delta_2: An integer of how will the score of the second player change
+    """
+    sum_1: int = 0
+    sum_2: int = 0
+
+    for i in range(len(moves_1)):
+        result: tuple[int, int] = resolve_moves(moves_1[i], moves_2[i])
+        sum_1 += result[0]
+        sum_2 += result[1]
+
+    return (sum_1, sum_2)
 
 def str_to_move_list(string: str) -> list[Move]:
     """
