@@ -9,6 +9,7 @@ from utils import (LETTER_TO_MOVE, LETTER_TO_MOVE_PAIR, Move, MoveHistory,
 # pyright: reportUnusedParameter=false, reportExplicitAny=false
 
 """
+(Docstring for all strategies)
 Args:
     my_moves: A history of this strategy moves this game
     opponent_moves: A history of opponent strategy moves this game
