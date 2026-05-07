@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 import strategies
-from utils import MoveHistory, Strategy, resolve_moves
+from utils import Move, MoveHistory, Strategy, move_list_to_str, resolve_moves
 
 # pyright: reportExplicitAny=false
 
@@ -131,18 +131,90 @@ def simulate_tournament(
 
 
 if __name__ == "__main__":
-    strategy_list = [
-        obj
+    strategy_list: list[tuple[str, Strategy]] = [
+        (name[6:], obj)
         for name, obj in inspect.getmembers(strategies, inspect.isfunction)
         if name[:6] == "strat_"
     ]
 
-    round_count = 1000
-    df_results, df_times = simulate_tournament(3, round_count, strategy_list)
+    print("Strategies:")
 
-    print(df_times)
+    for i, (name, _) in enumerate(strategy_list):
+        print(f"{i}: {name}")
 
-    print(f"\nMax points: {round_count}")
-    df_results.to_csv("last_run.csv")
 
-    print(df_results)
+    retry: bool = True
+    index: int = 0
+    while retry:
+        try:
+            index = int(input("Which strategy would you like to play against > "))
+
+            if index < 0:
+                print("Please enter an integer bigger than 0")
+                continue
+            if len(strategy_list) <= index:
+                print(f"Please enter an integer smaller than {len(strategy_list)}")
+                continue
+
+            retry = False
+        except ValueError as e:
+            print("Please enter an integer")
+
+    print(f"Selected {strategy_list[index][0]}")
+    print("To exit enter 'Q'")
+    print("To make your move enter 'R'(ock), 'P'(aper) or 'S'(cissors)")
+
+    player_history: MoveHistory = np.empty(1000, dtype=object)
+    player_score = 0
+    player_move: Move
+
+    strategy = strategy_list[index][1]
+    strategy_history: MoveHistory = np.empty(1000, dtype=object)
+    strategy_context: Any | None = None
+    strategy_move: Move
+
+
+    for i in range(1000):
+        command: str = input("> ").lower()
+
+        if command == "q":
+            break
+        elif command == "r":
+            player_move = Move.ROCK
+            print("Rock vs. ", end="")
+        elif command == "p":
+            player_move = Move.PAPER
+            print("Paper vs. ", end="")
+        elif command == "s":
+            player_move = Move.SCISSORS
+            print("Scissors vs. ", end="")
+        else:
+            print("Unknown command")
+            continue
+
+        strategy_move, strategy_context = strategy(
+            strategy_history[:i], strategy_history[:i], strategy_context
+        )
+
+        time.sleep(0.5)
+        if(strategy_move == Move.ROCK):
+            print("ROCK")
+        elif(strategy_move == Move.PAPER):
+            print("PAPER")
+        elif(strategy_move == Move.SCISSORS):
+            print("SCISSORS")
+
+        player_history[i] = player_move
+        strategy_history[i] = strategy_move
+
+        delta, _ = resolve_moves(player_move, strategy_move)
+        player_score += delta
+
+        if 0 < delta:
+            print(f"You won! Your score is now: {player_score}")
+
+        elif delta < 0:
+            print(f"You lost... Your score is now: {player_score}")
+
+        else:
+            print(f"Tie. Your score is now: {player_score}")
