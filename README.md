@@ -26,18 +26,21 @@ The '**random**' library is imported and functions from it can be used, there ar
 
 An example strategy:
 ```python
-def strat_beats_last(my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+def strat_beats_last(
+    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
+) -> tuple[Move, Any | None]:
     """
-    Author: Alice
     Plays the move that beats the last played move
+
+    Author: Alice, Bob, John
     """
     if len(opponent_moves) == 0:
-        return Move.ROCK
+        return Move.ROCK, None
 
     move_dict = {Move.PAPER : Move.SCISSORS, Move.SCISSORS : Move.ROCK
                  , Move.ROCK : Move.PAPER}
 
-    return move_dict[opponent_moves[-1]]
+    return move_dict[opponent_moves[-1]], None
 ```
 
 To verify your strategies performace you can clone the repo, add your strategies function to the strategies.py file and run the run_tournament.py file.

@@ -2,7 +2,9 @@ import random
 from collections import Counter
 from typing import Any
 
-from utils import Move, MoveHistory, get_counter
+from utils import (LETTER_TO_MOVE, LETTER_TO_MOVE_PAIR, Move, MoveHistory,
+                   get_counter, get_rated_substringss_v1, is_suffix,
+                   move_list_to_str, move_pair_list_to_str)
 
 # pyright: reportUnusedParameter=false, reportExplicitAny=false
 
@@ -10,8 +12,11 @@ from utils import Move, MoveHistory, get_counter
 Args:
     my_moves: A history of this strategy moves this game
     opponent_moves: A history of opponent strategy moves this game
+    context: Can be any variable, if unused then None, used for
+        optimisation
 Returns:
-    A move this strategy will make next
+    move: A move this strategy will make next
+    context: Can be any variable, if unused then None
 """
 
 
@@ -49,6 +54,97 @@ def strat_paper_only(
     """
 
     return Move.PAPER, None
+
+
+def strat_patternmatcher_1d_v1(
+    my_moves: MoveHistory,
+    opponent_moves: MoveHistory,
+    context: tuple[int, dict[str, float]] | None,
+) -> tuple[Move, Any | None]:
+    """
+    A more complex strategy, which tries to find a pattern in the
+    opponets moves, to defeat the opponent, it is quite dependant
+    on its parameters
+
+    Author: lukassta
+    """
+    # ========PARAMETERS========
+    MIN_SUBLIST_LENGTH = 2
+    MAX_SUBLIST_LENGTH = 4
+    BASE_SUBLIST_SCORE = 1
+    LETTER_SCORE_MULT = 4
+    # ==========================
+
+    if context is None:
+        context = (0, {})
+
+    opponent_move_string = move_list_to_str(list(opponent_moves))
+
+    # TODO: figure out min_length=1
+    # to top strat_R2P2S6
+    context = get_rated_substringss_v1(
+        opponent_move_string,
+        min_lenght=MIN_SUBLIST_LENGTH,
+        max_lenght=MAX_SUBLIST_LENGTH,
+        base_score=BASE_SUBLIST_SCORE,
+        letter_score_mult=LETTER_SCORE_MULT,
+        context=context,
+    )
+
+    for substring in context[1]:
+        if is_suffix(opponent_move_string, substring[:-1]):
+            predicted_move: Move = LETTER_TO_MOVE[substring[-1]]
+            counter_move: Move = get_counter(predicted_move)
+
+            return counter_move, context
+
+    return random.choice(list(Move)), context
+
+
+def strat_patternmatcher_2d_v1(
+    my_moves: MoveHistory,
+    opponent_moves: MoveHistory,
+    context: tuple[int, dict[str, float]] | None,
+) -> tuple[Move, Any | None]:
+    """
+    A more complex strategy, which tries to find a pattern in its and
+    opponent strategy move combinations, to defeat the opponent, it is
+    quite dependant on its parameters
+
+    Author: lukassta
+    """
+    # ========PARAMETERS========
+    MIN_SUBLIST_LENGTH = 1
+    MAX_SUBLIST_LENGTH = 4
+    BASE_SUBLIST_SCORE = 2
+    LETTER_SCORE_MULT = 3
+    # ==========================
+
+    if context is None:
+        context = (0, {})
+
+    move_pair_list: list[tuple[Move, Move]] = list(zip(my_moves, opponent_moves))
+    move_pair_string = move_pair_list_to_str(move_pair_list)
+
+    # TODO: figure out min_length=1
+    # to top strat_R2P2S6
+    context = get_rated_substringss_v1(
+        move_pair_string,
+        min_lenght=MIN_SUBLIST_LENGTH,
+        max_lenght=MAX_SUBLIST_LENGTH,
+        base_score=BASE_SUBLIST_SCORE,
+        letter_score_mult=LETTER_SCORE_MULT,
+        context=context,
+    )
+
+    for substring in context[1]:
+        if is_suffix(move_pair_string, substring[:-1]):
+            predicted_move: Move = LETTER_TO_MOVE_PAIR[substring[-1]][1]
+            counter_move: Move = get_counter(predicted_move)
+
+            return counter_move, context
+
+    return random.choice(list(Move)), context
 
 
 def strat_R2P2S6(
