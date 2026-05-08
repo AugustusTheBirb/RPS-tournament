@@ -1,15 +1,15 @@
+import argparse
 import inspect
 import time
 from itertools import combinations
+from math import nan
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
 import strategies
-from utils import MoveHistory, Strategy, move_list_to_str, resolve_moves
-
-import argparse
+from utils import MoveHistory, Strategy, resolve_moves
 
 # pyright: reportExplicitAny=false
 
@@ -62,7 +62,6 @@ def simulate_game(
         strategy_2_score += delta_2
         strategy_2_history[i] = move_2
 
-
     return (strategy_1_score, strategy_1_time_ms), (
         strategy_2_score,
         strategy_2_time_ms,
@@ -90,7 +89,7 @@ def simulate_tournament(
     game_count: int = len(strategy_list) - 1
     strategy_index: pd.Index = pd.Index(list(x.__name__[6:] for x in strategy_list))
 
-    df_results = pd.DataFrame(np.nan, columns=strategy_index, index=strategy_index)
+    df_results = pd.DataFrame(nan, columns=strategy_index, index=strategy_index)
     df_times = pd.DataFrame(
         0, columns=pd.Index(["avg_time_ms"]), index=strategy_index
     ).astype({"avg_time_ms": float})
@@ -114,14 +113,14 @@ def simulate_tournament(
             total_time_2 += time_2
 
         df_times.loc[strategy_1_name, "avg_time_ms"] += round(
-            total_time_1 / repeat_count / game_count
-        ,2)
+            total_time_1 / repeat_count / game_count, 2
+        )
         df_results.loc[strategy_1_name, strategy_2_name] = round(
             total_score_1 / repeat_count
         )
         df_times.loc[strategy_2_name, "avg_time_ms"] += round(
-            total_time_2 / repeat_count / game_count
-        ,2)
+            total_time_2 / repeat_count / game_count, 2
+        )
         df_results.loc[strategy_2_name, strategy_1_name] = round(
             total_score_2 / repeat_count
         )
@@ -136,11 +135,44 @@ def simulate_tournament(
     return df_results, df_times
 
 
+def plot_results(df_results: pd.DataFrame):
+    import matplotlib.pyplot as plt
+
+    fig, (ax1, ax2) = plt.subplots(
+        1, 2, figsize=(12, 6), gridspec_kw={"width_ratios": [3, 1]}
+    )
+
+    matrix = df_results.drop(columns="average_score", errors="ignore")
+    im = ax1.imshow(matrix.values, cmap="bwr_r", aspect="equal")
+    ax1.set_xticks(range(len(matrix.columns)))
+    ax1.set_yticks(range(len(matrix.index)))
+    ax1.set_xticklabels(matrix.columns, rotation=45, ha="right")
+    ax1.set_yticklabels(matrix.index)
+    ax1.set_title("Score: row strategy vs column strategy")
+    fig.colorbar(im, ax=ax1)
+
+    avg = df_results["average_score"].sort_values()
+    ax2.barh(avg.index, avg.values)
+    ax2.set_title("Average score")
+
+    plt.tight_layout()
+    plt.show()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-rounds", type=int, default=1000)
-    parser.add_argument("-plot", action="store_true")
+    _ = parser.add_argument(
+        "-g", "--games", help="Number of games to average", type=int, default=3
+    )
+    _ = parser.add_argument(
+        "-r", "--rounds", help="Number of rounds per game", type=int, default=1000
+    )
+    _ = parser.add_argument("-p", "--plot", help="Draw plot", action="store_true")
     args = parser.parse_args()
+
+    round_count: int = args.rounds
+    game_count: int = args.games
+    print_plot: bool = args.plot
 
     strategy_list = [
         obj
@@ -148,8 +180,7 @@ if __name__ == "__main__":
         if name[:6] == "strat_"
     ]
 
-    round_count = 1000
-    df_results, df_times = simulate_tournament(3, args.rounds, strategy_list)
+    df_results, df_times = simulate_tournament(game_count, round_count, strategy_list)
 
     print(df_times)
 
@@ -157,23 +188,6 @@ if __name__ == "__main__":
     df_results.to_csv("last_run.csv")
 
     print(df_results)
-    if args.plot:
-        import matplotlib.pyplot as plt
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), gridspec_kw={"width_ratios": [3, 1]})
-
-        matrix = df_results.drop(columns="average_score", errors="ignore")
-        im = ax1.imshow(matrix.values, cmap="bwr_r", aspect="equal")
-        ax1.set_xticks(range(len(matrix.columns)))
-        ax1.set_yticks(range(len(matrix.index)))
-        ax1.set_xticklabels(matrix.columns, rotation=45, ha="right")
-        ax1.set_yticklabels(matrix.index)
-        ax1.set_title("Score: row strategy vs column strategy")
-        fig.colorbar(im, ax=ax1)
-
-        avg = df_results["average_score"].sort_values()
-        ax2.barh(avg.index, avg.values)
-        ax2.set_title("Average score")
-
-        plt.tight_layout()
-        plt.show()
+    if print_plot:
+        plot_results(df_results)

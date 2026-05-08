@@ -2,9 +2,18 @@ import random
 from collections import Counter
 from typing import Any
 
-from utils import (LETTER_TO_MOVE, LETTER_TO_MOVE_PAIR, Move, MoveHistory,
-                   get_counter, get_rated_substringss_v1, is_suffix,
-                   move_list_to_str, move_pair_list_to_str, resolve_move_lists)
+from utils import (
+    LETTER_TO_MOVE,
+    LETTER_TO_MOVE_PAIR,
+    Move,
+    MoveHistory,
+    get_counter,
+    get_rated_substringss_v1,
+    is_suffix,
+    move_list_to_str,
+    move_pair_list_to_str,
+    resolve_move_lists,
+)
 
 # pyright: reportUnusedParameter=false, reportExplicitAny=false
 
@@ -32,6 +41,7 @@ def strat_beats_last(
 
     return get_counter(opponent_moves[-1]), None
 
+
 def strat_beats_last_meta1(
     my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
 ) -> tuple[Move, Any | None]:
@@ -52,6 +62,7 @@ def strat_beats_last_meta1(
         return get_counter(move_beats_last), None
     else:
         return move_beats_last, None
+
 
 def strat_beats_modal(
     my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
@@ -231,6 +242,7 @@ def strat_scissors_only(
 
     return Move.SCISSORS, None
 
+
 def strat_beats_op_distribution(
     my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
 ) -> tuple[Move, Any | None]:
@@ -240,10 +252,13 @@ def strat_beats_op_distribution(
     """
     if not context:
         context = {Move.ROCK: 0, Move.PAPER: 0, Move.SCISSORS: 0}
-        return Move(random.randint(0,2)), context
+        return Move(random.randint(0, 2)), context
 
     context[opponent_moves[-1]] += 1
     n: int = len(opponent_moves)
-    weights: list[float] = list(i/n for i in context.values())
+    weights: list[float] = list(i / n for i in context.values())
 
-    return get_counter(Move(random.choices([0,1,2], weights=weights, k=1)[0])), context
+    return (
+        get_counter(Move(random.choices([0, 1, 2], weights=weights, k=1)[0])),
+        context,
+    )

@@ -1,9 +1,8 @@
 from enum import IntEnum
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Sequence, TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
-from typing import TypeVar
 
 _T = TypeVar("_T")
 
@@ -107,7 +106,7 @@ def get_rated_substringss_v1(
                 continue
 
             substring = string[i - letter_count : i]
-            score = base_score + letter_score_mult ** letter_count
+            score = base_score + letter_score_mult**letter_count
 
             if scored_substrings.__contains__(substring):
                 scored_substrings[substring] += score
@@ -192,6 +191,7 @@ def resolve_moves(move_1: Move, move_2: Move) -> tuple[int, int]:
 
     return result_matrix[move_1][move_2]
 
+
 def resolve_move_lists(moves_1: list[Move], moves_2: list[Move]) -> tuple[int, int]:
     """
     Gets move lists of two players and resolves how player scores will change
@@ -212,6 +212,7 @@ def resolve_move_lists(moves_1: list[Move], moves_2: list[Move]) -> tuple[int, i
         sum_2 += result[1]
 
     return (sum_1, sum_2)
+
 
 def str_to_move_list(string: str) -> list[Move]:
     """
