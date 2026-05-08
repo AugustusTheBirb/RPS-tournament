@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 import strategies
-from utils import Move, MoveHistory, Strategy, move_list_to_str, resolve_moves
+from utils import Move, MoveHistory, Strategy, resolve_moves
 
 # pyright: reportExplicitAny=false
 
@@ -60,7 +60,6 @@ def simulate_game(
         strategy_2_score += delta_2
         strategy_2_history[i] = move_2
 
-
     return (strategy_1_score, strategy_1_time_ms), (
         strategy_2_score,
         strategy_2_time_ms,
@@ -112,14 +111,14 @@ def simulate_tournament(
             total_time_2 += time_2
 
         df_times.loc[strategy_1_name, "avg_time_ms"] += round(
-            total_time_1 / repeat_count / game_count
-        ,2)
+            total_time_1 / repeat_count / game_count, 2
+        )
         df_results.loc[strategy_1_name, strategy_2_name] = round(
             total_score_1 / repeat_count
         )
         df_times.loc[strategy_2_name, "avg_time_ms"] += round(
-            total_time_2 / repeat_count / game_count
-        ,2)
+            total_time_2 / repeat_count / game_count, 2
+        )
         df_results.loc[strategy_2_name, strategy_1_name] = round(
             total_score_2 / repeat_count
         )
@@ -142,7 +141,6 @@ if __name__ == "__main__":
     for i, (name, _) in enumerate(strategy_list):
         print(f"{i}: {name}")
 
-
     retry: bool = True
     index: int = 0
     while retry:
@@ -157,7 +155,7 @@ if __name__ == "__main__":
                 continue
 
             retry = False
-        except ValueError as e:
+        except ValueError:
             print("Please enter an integer")
 
     print(f"Selected {strategy_list[index][0]}")
@@ -172,7 +170,6 @@ if __name__ == "__main__":
     strategy_history: MoveHistory = np.empty(1000, dtype=object)
     strategy_context: Any | None = None
     strategy_move: Move
-
 
     quit: bool = False
     for i in range(1000):
@@ -206,11 +203,11 @@ if __name__ == "__main__":
         )
 
         time.sleep(0.5)
-        if(strategy_move == Move.ROCK):
+        if strategy_move == Move.ROCK:
             print("ROCK")
-        elif(strategy_move == Move.PAPER):
+        elif strategy_move == Move.PAPER:
             print("PAPER")
-        elif(strategy_move == Move.SCISSORS):
+        elif strategy_move == Move.SCISSORS:
             print("SCISSORS")
 
         player_history[i] = player_move

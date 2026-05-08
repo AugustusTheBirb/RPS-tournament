@@ -7,6 +7,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from pandas.core.api import DataFrame
 
 import strategies
 from utils import MoveHistory, Strategy, resolve_moves
@@ -69,7 +70,7 @@ def simulate_game(
 
 
 def simulate_tournament(
-    repeat_count: int, round_count: int, strategy_list: list[Strategy]
+    repeat_count: int, round_count: int, strategy_list: set[Strategy]
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Simulates a tournament that includes multiple strategies, each
@@ -89,8 +90,10 @@ def simulate_tournament(
     game_count: int = len(strategy_list) - 1
     strategy_index: pd.Index = pd.Index(list(x.__name__[6:] for x in strategy_list))
 
-    df_results = pd.DataFrame(nan, columns=strategy_index, index=strategy_index)
-    df_times = pd.DataFrame(
+    df_results: DataFrame = pd.DataFrame(
+        nan, columns=strategy_index, index=strategy_index
+    )
+    df_times: DataFrame = pd.DataFrame(
         0, columns=pd.Index(["avg_time_ms"]), index=strategy_index
     ).astype({"avg_time_ms": float})
 
@@ -168,19 +171,39 @@ if __name__ == "__main__":
         "-r", "--rounds", help="Number of rounds per game", type=int, default=1000
     )
     _ = parser.add_argument("-p", "--plot", help="Draw plot", action="store_true")
+    _ = parser.add_argument(
+        "-c",
+        "--competitors",
+        help="List of strategies or strategy groups that compete in the tournament",
+        nargs="+",
+    )
     args = parser.parse_args()
+
+    strategy_dict: dict[str, Strategy] = {
+        name: obj
+        for name, obj in inspect.getmembers(strategies, inspect.isfunction)
+        if name[:6] == "strat_"
+    }
+    group_dict: dict[str, list[Strategy]] = {
+        name: obj for name, obj in vars(strategies).items() if name[:6] == "group_"
+    }
+
+    strategy_set: set[Strategy] = set()
+
+    if args.competitors is not None:
+        for competitor_str in args.competitors:
+            if competitor_str[:6] == "strat_" and competitor_str in strategy_dict:
+                strategy_set.add(strategy_dict[competitor_str])
+
+            elif competitor_str[:6] == "group_" and competitor_str in group_dict:
+                for strategy in group_dict[competitor_str]:
+                    strategy_set.add(strategy)
 
     round_count: int = args.rounds
     game_count: int = args.games
     print_plot: bool = args.plot
 
-    strategy_list = [
-        obj
-        for name, obj in inspect.getmembers(strategies, inspect.isfunction)
-        if name[:6] == "strat_"
-    ]
-
-    df_results, df_times = simulate_tournament(game_count, round_count, strategy_list)
+    df_results, df_times = simulate_tournament(game_count, round_count, strategy_set)
 
     print(df_times)
 
