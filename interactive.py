@@ -174,26 +174,35 @@ if __name__ == "__main__":
     strategy_move: Move
 
 
+    quit: bool = False
     for i in range(1000):
-        command: str = input("> ").lower()
+        while True:
+            command: str = input("> ").lower()
 
-        if command == "q":
+            if command == "q":
+                quit = True
+                break
+            elif command == "r":
+                player_move = Move.ROCK
+                print("Rock vs. ", end="")
+                break
+            elif command == "p":
+                player_move = Move.PAPER
+
+                break
+            elif command == "s":
+                player_move = Move.SCISSORS
+                print("Scissors vs. ", end="")
+                break
+            else:
+                print("Unknown command")
+                continue
+
+        if quit:
             break
-        elif command == "r":
-            player_move = Move.ROCK
-            print("Rock vs. ", end="")
-        elif command == "p":
-            player_move = Move.PAPER
-            print("Paper vs. ", end="")
-        elif command == "s":
-            player_move = Move.SCISSORS
-            print("Scissors vs. ", end="")
-        else:
-            print("Unknown command")
-            continue
 
         strategy_move, strategy_context = strategy(
-            strategy_history[:i], strategy_history[:i], strategy_context
+            strategy_history[:i], player_history[:i], strategy_context
         )
 
         time.sleep(0.5)
