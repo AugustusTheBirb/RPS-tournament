@@ -3,6 +3,7 @@ from typing import Any, Callable, Sequence, TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
+from sortedcontainers import SortedList
 
 _T = TypeVar("_T")
 
@@ -57,15 +58,15 @@ def get_counter(move_to_counter: Move) -> Move:
         return Move.ROCK
 
 
-def get_rated_substringss_v1(
+def get_rated_substrings_v1(
     string: str,
     *,
     min_lenght: int,
     max_lenght: int,
     base_score: float,
     letter_score_mult: float,
-    context: tuple[int, dict[str, float]],
-) -> tuple[int, dict[str, float]]:
+    context: tuple[int, dict[str, float], SortedList],
+) -> tuple[int, dict[str, float], SortedList]:
     """
     Returns all substrings in a string rated by occurance
     chance
@@ -89,16 +90,20 @@ def get_rated_substringss_v1(
         base_score: score given to a substring
         letter_score_mult: multiplier of the base score
             for each letter
-        context: An int of previoulsy evaluated letters count
-            and a dict of perviously found substrings, purely
-            an optimisation
+        context: An int of previoulsy evaluated letters count,
+            a dict of perviously found substrings and their
+            scores and a sorted list of substrins and scores,
+            purelyan optimisation
     Returns:
-        An int of previoulsy evaluated letter count and a
-        dict of found substrings as keys, and scores
-        as values
+        evaluated_moves: An int of previoulsy evaluated letter count
+        rated_substrings: A dict of found substrings as keys, and scores as values
+        sorted_substrings: A SortedList of score and substring tuples
     """
-    evaluated_moves: int = context[0]
-    scored_substrings: dict[str, float] = context[1]
+    evaluated_moves: int
+    rated_substrings: dict[str, float]
+    sorted_substrings: SortedList
+
+    evaluated_moves, rated_substrings, sorted_substrings = context
 
     for i in range(evaluated_moves, len(string) + 1):
         for letter_count in range(min_lenght, max_lenght + 1):
@@ -108,21 +113,15 @@ def get_rated_substringss_v1(
             substring = string[i - letter_count : i]
             score = base_score + letter_score_mult**letter_count
 
-            if scored_substrings.__contains__(substring):
-                scored_substrings[substring] += score
+            if substring in rated_substrings:
+                sorted_substrings.remove((rated_substrings[substring], substring))
+                rated_substrings[substring] += score
+            else:
+                rated_substrings[substring] = score
 
-                continue
+            sorted_substrings.add((rated_substrings[substring], substring))
 
-            scored_substrings[substring] = score
-
-    sorted_substrings: dict[str, float] = {
-        substring: score
-        for substring, score in sorted(
-            scored_substrings.items(), key=lambda item: item[1], reverse=True
-        )
-    }
-
-    return len(string), sorted_substrings
+    return len(string), rated_substrings, sorted_substrings
 
 
 def is_suffix(base: Sequence[_T], suffix: Sequence[_T]) -> bool:
