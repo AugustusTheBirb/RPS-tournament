@@ -2,13 +2,11 @@ import random
 from collections import Counter
 from typing import Any
 
-from sortedcontainers import SortedList, sortedlist
+from sortedcontainers import SortedList
 
 from utils import (
     LETTER_TO_MOVE,
     LETTER_TO_MOVE_PAIR,
-    MOVE_LETTERS,
-    MOVE_PAIR_LETTERS,
     Move,
     MoveHistory,
     get_counter,
