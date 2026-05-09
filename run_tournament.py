@@ -163,7 +163,15 @@ def plot_results(df_results: pd.DataFrame):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    strategy_dict: dict[str, Strategy] = {
+        name: obj
+        for name, obj in inspect.getmembers(strategies, inspect.isfunction)
+        if name[:6] == "strat_"
+    }
+    group_dict: dict[str, list[Strategy]] = {
+        name: obj for name, obj in vars(strategies).items() if name[:6] == "group_"
+    }
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     _ = parser.add_argument(
         "-g", "--games", help="Number of games to average", type=int, default=3
     )
@@ -174,19 +182,16 @@ if __name__ == "__main__":
     _ = parser.add_argument(
         "-c",
         "--competitors",
-        help="List of strategies or strategy groups that compete in the tournament",
+        help="list of strategies or strategy groups that compete in the tournament"
+        + f"\ngroups: {list(group_dict.keys())}"
+        + f"\nstrategies: {list(strategy_dict.keys())}",
         nargs="+",
     )
     args = parser.parse_args()
 
-    strategy_dict: dict[str, Strategy] = {
-        name: obj
-        for name, obj in inspect.getmembers(strategies, inspect.isfunction)
-        if name[:6] == "strat_"
-    }
-    group_dict: dict[str, list[Strategy]] = {
-        name: obj for name, obj in vars(strategies).items() if name[:6] == "group_"
-    }
+    round_count: int = args.rounds
+    game_count: int = args.games
+    print_plot: bool = args.plot
 
     strategy_set: set[Strategy] = set()
 
@@ -198,10 +203,8 @@ if __name__ == "__main__":
             elif competitor_str[:6] == "group_" and competitor_str in group_dict:
                 for strategy in group_dict[competitor_str]:
                     strategy_set.add(strategy)
-
-    round_count: int = args.rounds
-    game_count: int = args.games
-    print_plot: bool = args.plot
+    else:
+        strategy_set = set(strategy_dict.values())
 
     df_results, df_times = simulate_tournament(game_count, round_count, strategy_set)
 
