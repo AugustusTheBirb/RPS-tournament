@@ -1,6 +1,13 @@
 # RPS tournament
 A repo for running rock-paper-scissors tournaments with lots of strategies
 
+## Usage
+To run the tournament
+```bash
+python run_tournament.py -c group_bad strat_patternmatcher_1d_v1
+```
+
+
 ## To contribute
 Read this article [Rock Paper Scissors is not solved, in practice](https://open.substack.com/pub/inchpin/p/rock-paper-scissors-is-not-solved).
 
