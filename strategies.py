@@ -1,6 +1,7 @@
 import random
 from collections import Counter
 from typing import Any
+import numpy as np
 
 from utils import (
     LETTER_TO_MOVE,
@@ -49,17 +50,19 @@ def strat_beats_last_meta1(
     Plays the move that beats the move that beats the last played move
     """
     meta_flag: bool = False
+
     if len(opponent_moves) == 0:
         return random.choice(list(Move)), None
 
     if len(opponent_moves) >= 50:
         my_score_50 = resolve_move_lists(my_moves[-50:-1], opponent_moves[-50:-1])[0]
-        if my_score_50 < -25:
+        if my_score_50 < 5:
             meta_flag = True
+
     move_beats_last: Move = get_counter(opponent_moves[-1])
 
     if meta_flag:
-        return get_counter(move_beats_last), None
+        return get_counter(get_counter(my_moves[-1])), None
     else:
         return move_beats_last, None
 
@@ -86,6 +89,48 @@ def strat_paper_only(
     """
 
     return Move.PAPER, None
+
+
+def strat_pattern_beater(
+    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
+) -> tuple[Move, Any | None]:
+    """
+    Plays the move that would counter what a pattern matcher would predict it
+    would play. Result is that it confuses 1d pattern matchers into playing the
+    the same move over and over again. Exploits this.
+
+    Author: AugustusTheBirb
+    """
+
+    pattern_length: int = 3
+
+    if context is None:
+        context = ([], {})
+    my_list, patterns = context
+
+    # update context
+    if len(my_moves) > len(my_list):
+        new_move = int(my_moves[-1])
+        if len(my_list) >= pattern_length:
+            key = tuple(my_list[-pattern_length:])
+            if key not in patterns:
+                patterns[key] = {0: 0, 1: 0, 2: 0}
+            patterns[key][new_move] += 1
+        my_list.append(new_move)
+
+    if len(my_moves) > 10:
+
+        if np.all(opponent_moves[-pattern_length : ] == opponent_moves[-1]):
+            return get_counter(opponent_moves[-1]), context
+
+        key = tuple(my_list[-pattern_length:])
+        d = patterns.get(key, {0: 0, 1: 0, 2: 0})
+
+        arr = sorted(list(d.items()), key=lambda x: x[1])
+
+        return get_counter(get_counter(arr[-1][0])), context
+    else:
+        return random.randint(0,2), context
 
 
 def strat_patternmatcher_1d_v1(
@@ -262,3 +307,4 @@ def strat_beats_op_distribution(
         get_counter(Move(random.choices([0, 1, 2], weights=weights, k=1)[0])),
         context,
     )
+
