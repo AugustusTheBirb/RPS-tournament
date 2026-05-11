@@ -10,6 +10,7 @@ from utils import (
     LETTER_TO_MOVE_PAIR,
     Move,
     MoveHistory,
+    Strategy,
     get_counter,
     get_rated_substrings_v1,
     is_suffix,
@@ -269,7 +270,7 @@ def strat_R2P2S6(
         return Move.SCISSORS, None
 
 
-def strat_random_strat(
+def strat_random(
     my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
 ) -> tuple[Move, Any | None]:
     """
@@ -342,3 +343,14 @@ def strat_beats_op_distribution(
         context,
     )
 
+
+group_bad: list[Strategy] = [strat_rock_only, strat_scissors_only, strat_paper_only]
+group_random: list[Strategy] = [strat_random, strat_R2P2S6, strat_rock_or_paper]
+group_primitive: list[Strategy] = [
+    strat_RPS_cyclic,
+    strat_beats_last,
+    strat_beats_modal,
+    strat_beats_op_distribution,
+]
+group_meta: list[Strategy] = [strat_beats_last_meta1]
+group_pattern: list[Strategy] = [strat_patternmatcher_1d_v1, strat_patternmatcher_2d_v1]
