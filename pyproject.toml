@@ -1,0 +1,19 @@
+[project]
+name = "rps-tournament"
+version = "0.1.0"
+description = "A tournament where bots compete in rock-paper-scissors matches, and are scores on perfomance"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "basedpyright>=1.39.5",
+    "matplotlib>=3.10.9",
+    "matplotlib-stubs>=0.3.11",
+    "numpy>=2.4.5",
+    "pandas>=3.0.3",
+    "pandas-stubs>=3.0.0.260204",
+    "ruff>=0.15.13",
+    "sortedcontainers>=2.4.0",
+]
+
+[tool.basedpyright]
+typeCheckingMode = "recommended"
