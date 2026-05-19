@@ -2,18 +2,15 @@
 A tournament where bots compete in rock-paper-scissors matches, and are scores on perfomance
 
 ## Setup
+Have python, uv installed and run
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install --upgrade pip
-pip install -r ./requirements.txt
-deactivate
+uv sync
 ```
 
 ## Usage
 To run the tournament
 ```bash
-python run_tournament.py -c group_bad strat_patternmatcher_1d_v1
+uv run python run_tournament.py -c group_bad strat_patternmatcher_1d_v1
 ```
 
 ## To contribute
@@ -21,11 +18,9 @@ Read this article [Rock Paper Scissors is not solved, in practice](https://open.
 
 Develop a strategy of your own.
 
-Run, to format and check your code:
+Before submittintg run this , to format and check your code:
 ```bash
-black strategies.py
-isort strategies.py
-flake8 strategies.py
+uv run ruff format
 ```
 
 Submit it via this [form](https://forms.gle/uk3tAW2y4vxVbxyLA)
