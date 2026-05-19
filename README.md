@@ -1,5 +1,5 @@
 # RPS tournament
-A tournament where bots compete in rock-paper-scissors matches, and are scores on perfomance
+A tournament where bots compete in iterated rock-paper-scissors matches.
 
 ## Setup
 Have python, uv installed and run
@@ -10,22 +10,8 @@ uv sync
 ## Usage
 To run the tournament
 ```bash
-uv run python run_tournament.py -c group_bad strat_patternmatcher_1d_v1
+uv run python run_tournament.py -p
 ```
-
-## To contribute
-Read this article [Rock Paper Scissors is not solved, in practice](https://open.substack.com/pub/inchpin/p/rock-paper-scissors-is-not-solved).
-
-Develop a strategy of your own.
-
-Before submittintg run this , to format and check your code:
-```bash
-uv run ruff format
-```
-
-Submit it via this [form](https://forms.gle/uk3tAW2y4vxVbxyLA)
-
-**Because performance in this tournament depends on the population of other strategies present, there is only one submission allowed per participant.**
 
 ## What is this tournament
 This is a tournament of rock paper scissors strategies, each strategy will play against every other strategy for 1000 moves, repeated 3x to average out some randomness.
@@ -43,7 +29,7 @@ Rock beats scissors, scissors beat paper, paper beats rock.
 
 A strategy is a python function that takes in a move history ('my_moves' and 'opponent_moves') and a context variable, histories are n length arrays, context can be of any type. Strategy function returns one of the moves (Move.ROCK, Move.PAPER, Move.SCISSORS) from the same set and some context. It should contain a docstring with description of your strategy and your name/pseudonym.
 
-The '**random**' library is imported and functions from it can be used, there are also two helper functions utils.convert_to_name() which converts a move id to a move name, and utils.convert_to_id which converts a name to an id
+**Pandas, numpy and random libraries are imported and can be freely used, no other external libraries besides these are allowed** There are also some helper functions in the utils.py file.
 
 
 An example strategy:
@@ -57,10 +43,26 @@ def strat_beats_last(
     Author: Alice, Bob, John
     """
     if len(opponent_moves) == 0:
-        return Move.ROCK, None
-
+        return random.choice(list(Move)), None
 
     return get_counter(opponent_moves[-1]), None
 ```
 
-To verify your strategies performace you can clone the repo, add your strategies function to the strategies.py file and run the run_tournament.py file.
+
+## To contribute
+
+This article gives some background information on RPS strategies: [Rock Paper Scissors is not solved, in practice](https://open.substack.com/pub/inchpin/p/rock-paper-scissors-is-not-solved).
+
+Develop a strategy of your own. You can you use the workshop notebook for testing and hyperparameter tuning. To run a strategy in the tournament simply add the function to the *strategies.py* file
+
+You can also try playing against the strategies yourself via the interactive.py file.
+
+
+Before submittintg run this, to format and check your code:
+```bash
+uv run ruff format
+```
+
+Submit it via this [form](https://forms.gle/uk3tAW2y4vxVbxyLA)
+
+**Because performance in this tournament depends on the population of other strategies present, there is only one submission allowed per participant.**
