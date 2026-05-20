@@ -2,7 +2,6 @@ import argparse
 import inspect
 import time
 from itertools import combinations
-from math import nan
 from typing import Any
 
 import numpy as np
@@ -11,8 +10,6 @@ from pandas.core.api import DataFrame
 
 import strategies
 from utils import MoveHistory, Strategy, resolve_moves
-
-# pyright: reportExplicitAny=false
 
 
 def simulate_game(
@@ -70,7 +67,7 @@ def simulate_game(
 
 
 def simulate_tournament(
-    repeat_count: int, round_count: int, strategy_list: set[Strategy]
+    repeat_count: int, round_count: int, strategy_set: set[Strategy]
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Simulates a tournament that includes multiple strategies, each
@@ -87,17 +84,14 @@ def simulate_tournament(
         df_restults: A dataframe of the tournament results
     """
 
-    game_count: int = len(strategy_list) - 1
-    strategy_index: pd.Index = pd.Index(list(x.__name__[6:] for x in strategy_list))
+    game_count: int = len(strategy_set) - 1
 
-    df_results: DataFrame = pd.DataFrame(
-        nan, columns=strategy_index, index=strategy_index
-    )
-    df_times: DataFrame = pd.DataFrame(
-        0, columns=pd.Index(["avg_time_ms"]), index=strategy_index
-    ).astype({"avg_time_ms": float})
+    strategy_matchup_scores: dict[tuple[str, str], float] = {}
+    strategy_times: dict[str, float] = {
+        strategy.__name__[6:]: 0 for strategy in strategy_set
+    }
 
-    for strategy_1, strategy_2 in combinations(strategy_list, 2):
+    for strategy_1, strategy_2 in combinations(strategy_set, 2):
         strategy_1_name: str = strategy_1.__name__[6:]
         total_score_1: int = 0
         total_time_1: float = 0
@@ -115,25 +109,25 @@ def simulate_tournament(
             total_score_2 += delta_2
             total_time_2 += time_2
 
-        df_times.loc[strategy_1_name, "avg_time_ms"] += round(
-            total_time_1 / repeat_count / game_count, 2
-        )
-        df_results.loc[strategy_1_name, strategy_2_name] = round(
+        strategy_times[strategy_1_name] += total_time_1 / repeat_count / game_count
+        strategy_matchup_scores[strategy_1_name, strategy_2_name] = (
             total_score_1 / repeat_count
         )
-        df_times.loc[strategy_2_name, "avg_time_ms"] += round(
-            total_time_2 / repeat_count / game_count, 2
-        )
-        df_results.loc[strategy_2_name, strategy_1_name] = round(
+        strategy_times[strategy_2_name] += total_time_2 / repeat_count / game_count
+        strategy_matchup_scores[strategy_2_name, strategy_1_name] = (
             total_score_2 / repeat_count
         )
 
+    df_results: DataFrame = pd.Series(strategy_matchup_scores).unstack()
     df_results["average_score"] = df_results.mean(axis=1)
     df_results = df_results.round(1)
     df_results.sort_values(by="average_score", inplace=True, ascending=False)
-
     col_order = [c for c in df_results.index] + ["average_score"]
     df_results = df_results[col_order]
+
+    df_times: DataFrame = pd.DataFrame.from_dict(
+        strategy_times, columns=["avg_time_ms"], orient="index"
+    )
 
     return df_results, df_times
 
@@ -152,7 +146,7 @@ def plot_results(df_results: pd.DataFrame):
     ax1.set_xticklabels(matrix.columns, rotation=45, ha="right")
     ax1.set_yticklabels(matrix.index)
     ax1.set_title("Score: row strategy vs column strategy")
-    fig.colorbar(im, ax=ax1)
+    _ = fig.colorbar(im, ax=ax1)
 
     avg = df_results["average_score"].sort_values()
     ax2.barh(avg.index, avg.values)
@@ -176,7 +170,11 @@ if __name__ == "__main__":
         "-g", "--games", help="Number of games to average", type=int, default=3
     )
     _ = parser.add_argument(
-        "-r", "--rounds", help="Number of rounds per game", type=int, default=1000
+        "-r",
+        "--rounds",
+        help="Number of rounds per game",
+        type=int,
+        default=1000,
     )
     _ = parser.add_argument("-p", "--plot", help="Draw plot", action="store_true")
     _ = parser.add_argument(

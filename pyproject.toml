@@ -17,3 +17,7 @@ dependencies = [
 
 [tool.basedpyright]
 typeCheckingMode = "recommended"
+reportAny = false
+reportExplicitAny = false
+reportMissingTypeStubs = false
+reportUnknownMemberType = false

@@ -1,15 +1,11 @@
 import inspect
 import time
-from itertools import combinations
 from typing import Any
 
 import numpy as np
-import pandas as pd
 
 import strategies
 from utils import Move, MoveHistory, Strategy, resolve_moves
-
-# pyright: reportExplicitAny=false
 
 
 def simulate_game(
@@ -66,69 +62,6 @@ def simulate_game(
     )
 
 
-def simulate_tournament(
-    repeat_count: int, round_count: int, strategy_list: list[Strategy]
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Simulates a tournament that includes multiple strategies, each
-    strategy is pit against each other (strategies, don't play
-    against themselves)
-
-    Args:
-        repeat_count: Integer of how many times a game will be repeated
-            and awereged out
-        round_count: Integer of how many rounds one strategy will
-            play against another during a game
-        strategy_lis: A list of strategies that will compete
-    Returns:
-        df_restults: A dataframe of the tournament results
-    """
-
-    game_count: int = len(strategy_list) - 1
-    strategy_index: pd.Index = pd.Index(list(x.__name__[6:] for x in strategy_list))
-
-    df_results = pd.DataFrame(None, columns=strategy_index, index=strategy_index)
-    df_times = pd.DataFrame(
-        0, columns=pd.Index(["avg_time_ms"]), index=strategy_index
-    ).astype({"avg_time_ms": float})
-
-    for strategy_1, strategy_2 in combinations(strategy_list, 2):
-        strategy_1_name: str = strategy_1.__name__[6:]
-        total_score_1: int = 0
-        total_time_1: float = 0
-
-        strategy_2_name: str = strategy_2.__name__[6:]
-        total_score_2: int = 0
-        total_time_2: float = 0
-
-        for _ in range(repeat_count):
-            (delta_1, time_1), (delta_2, time_2) = simulate_game(
-                round_count, strategy_1, strategy_2
-            )
-            total_score_1 += delta_1
-            total_time_1 += time_1
-            total_score_2 += delta_2
-            total_time_2 += time_2
-
-        df_times.loc[strategy_1_name, "avg_time_ms"] += round(
-            total_time_1 / repeat_count / game_count, 2
-        )
-        df_results.loc[strategy_1_name, strategy_2_name] = round(
-            total_score_1 / repeat_count
-        )
-        df_times.loc[strategy_2_name, "avg_time_ms"] += round(
-            total_time_2 / repeat_count / game_count, 2
-        )
-        df_results.loc[strategy_2_name, strategy_1_name] = round(
-            total_score_2 / repeat_count
-        )
-
-    df_results["average_score"] = df_results.mean(axis=1)
-    df_results = df_results.round(1)
-    df_results.sort_values(by="average_score", inplace=True, ascending=False)
-    return df_results, df_times
-
-
 if __name__ == "__main__":
     strategy_list: list[tuple[str, Strategy]] = [
         (name[6:], obj)
@@ -164,7 +97,7 @@ if __name__ == "__main__":
 
     player_history: MoveHistory = np.empty(1000, dtype=object)
     player_score = 0
-    player_move: Move
+    player_move: Move = Move.ROCK  # Initialize to be bounded
 
     strategy = strategy_list[index][1]
     strategy_history: MoveHistory = np.empty(1000, dtype=object)

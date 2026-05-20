@@ -1,8 +1,8 @@
 import random
 from collections import Counter
 from typing import Any
-import numpy as np
 
+import numpy as np
 from sortedcontainers import SortedList
 
 from utils import (
@@ -12,6 +12,7 @@ from utils import (
     MoveHistory,
     Strategy,
     get_counter,
+    get_random_move,
     get_rated_substrings_v1,
     is_suffix,
     move_list_to_str,
@@ -19,7 +20,7 @@ from utils import (
     resolve_move_lists,
 )
 
-# pyright: reportUnusedParameter=false, reportExplicitAny=false
+# pyright: reportUnusedParameter=false
 
 """
 (Docstring for all strategies)
@@ -55,10 +56,12 @@ def strat_beats_last_meta1(
     meta_flag: bool = False
 
     if len(opponent_moves) == 0:
-        return random.choice(list(Move)), None
+        return get_random_move(), None
 
     if len(opponent_moves) >= 50:
-        my_score_50 = resolve_move_lists(my_moves[-50:-1], opponent_moves[-50:-1])[0]
+        my_score_50 = resolve_move_lists(
+            list(my_moves[-50:-1]), list(opponent_moves[-50:-1])
+        )[0]
         if my_score_50 < 5:
             meta_flag = True
 
@@ -95,8 +98,10 @@ def strat_paper_only(
 
 
 def strat_pattern_beater(
-    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
-) -> tuple[Move, Any | None]:
+    my_moves: MoveHistory,
+    opponent_moves: MoveHistory,
+    context: tuple[list[Move], dict[tuple[Move, ...], dict[Move, int]]] | None,
+) -> tuple[Move, tuple[list[Move], dict[tuple[Move, ...], dict[Move, int]]]]:
     """
     Plays the move that would counter what a pattern matcher would predict it
     would play. Result is that it confuses 1d pattern matchers into playing the
@@ -113,11 +118,11 @@ def strat_pattern_beater(
 
     # update context
     if len(my_moves) > len(my_list):
-        new_move = int(my_moves[-1])
+        new_move: Move = my_moves[-1]
         if len(my_list) >= pattern_length:
             key = tuple(my_list[-pattern_length:])
             if key not in patterns:
-                patterns[key] = {0: 0, 1: 0, 2: 0}
+                patterns[key] = {Move.ROCK: 0, Move.PAPER: 0, Move.SCISSORS: 0}
             patterns[key][new_move] += 1
         my_list.append(new_move)
 
@@ -126,13 +131,13 @@ def strat_pattern_beater(
             return get_counter(opponent_moves[-1]), context
 
         key = tuple(my_list[-pattern_length:])
-        d = patterns.get(key, {0: 0, 1: 0, 2: 0})
+        dict = patterns.get(key, {Move.ROCK: 0, Move.PAPER: 0, Move.SCISSORS: 0})
 
-        arr = sorted(list(d.items()), key=lambda x: x[1])
+        arr = sorted(list(dict.items()), key=lambda x: x[1])
 
         return get_counter(get_counter(arr[-1][0])), context
     else:
-        return random.randint(0, 2), context
+        return get_random_move(), context
 
 
 def strat_patternmatcher_1d_v1(
@@ -173,8 +178,8 @@ def strat_patternmatcher_1d_v1(
         context=(iteration, rated_substrings, sorted_substrings),
     )
 
-    for _, substring in reversed(sorted_substrings):
-        if is_suffix(opponent_move_string, substring[:-1]):
+    for _, substring in reversed(sorted_substrings):  # pyright: ignore[reportUnknownVariableType]
+        if is_suffix(opponent_move_string, substring[:-1]):  # pyright: ignore[reportUnknownArgumentType]
             predicted_move: Move = LETTER_TO_MOVE[substring[-1]]
             counter_move: Move = get_counter(predicted_move)
 
@@ -185,7 +190,7 @@ def strat_patternmatcher_1d_v1(
                 opponent_move_string,
             )
 
-    return random.choice(list(Move)), (
+    return get_random_move(), (
         iteration,
         rated_substrings,
         sorted_substrings,
@@ -234,8 +239,8 @@ def strat_patternmatcher_2d_v1(
         context=(iteration, rated_substrings, sorted_substrings),
     )
 
-    for _, substring in reversed(sorted_substrings):
-        if is_suffix(move_pair_string, substring[:-1]):
+    for _, substring in reversed(sorted_substrings):  # pyright: ignore[reportUnknownVariableType]
+        if is_suffix(move_pair_string, substring[:-1]):  # pyright: ignore[reportUnknownArgumentType]
             predicted_move: Move = LETTER_TO_MOVE_PAIR[substring[-1]][1]
             counter_move: Move = get_counter(predicted_move)
 
@@ -246,7 +251,7 @@ def strat_patternmatcher_2d_v1(
                 move_pair_string,
             )
 
-    return random.choice(list(Move)), (
+    return get_random_move(), (
         iteration,
         rated_substrings,
         sorted_substrings,
@@ -278,7 +283,7 @@ def strat_random(
     an equal score with all other strategies
     """
 
-    return random.choice(list(Move)), None
+    return get_random_move(), None
 
 
 def strat_rock_only(
@@ -331,20 +336,28 @@ def strat_beats_op_distribution(
     """
     if not context:
         context = {Move.ROCK: 0, Move.PAPER: 0, Move.SCISSORS: 0}
-        return Move(random.randint(0, 2)), context
+        return get_random_move(), context
 
     context[opponent_moves[-1]] += 1
     n: int = len(opponent_moves)
     weights: list[float] = list(i / n for i in context.values())
 
     return (
-        get_counter(Move(random.choices([0, 1, 2], weights=weights, k=1)[0])),
+        get_counter(random.choices(list(Move), weights=weights, k=1)[0]),
         context,
     )
 
 
-group_bad: list[Strategy] = [strat_rock_only, strat_scissors_only, strat_paper_only]
-group_random: list[Strategy] = [strat_random, strat_R2P2S6, strat_rock_or_paper]
+group_bad: list[Strategy] = [
+    strat_rock_only,
+    strat_scissors_only,
+    strat_paper_only,
+]
+group_random: list[Strategy] = [
+    strat_random,
+    strat_R2P2S6,
+    strat_rock_or_paper,
+]
 group_primitive: list[Strategy] = [
     strat_RPS_cyclic,
     strat_beats_last,
@@ -352,4 +365,7 @@ group_primitive: list[Strategy] = [
     strat_beats_op_distribution,
 ]
 group_meta: list[Strategy] = [strat_beats_last_meta1]
-group_pattern: list[Strategy] = [strat_patternmatcher_1d_v1, strat_patternmatcher_2d_v1]
+group_pattern: list[Strategy] = [
+    strat_patternmatcher_1d_v1,
+    strat_patternmatcher_2d_v1,
+]
