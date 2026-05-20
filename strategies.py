@@ -122,8 +122,7 @@ def strat_pattern_beater(
         my_list.append(new_move)
 
     if len(my_moves) > 10:
-
-        if np.all(opponent_moves[-pattern_length : ] == opponent_moves[-1]):
+        if np.all(opponent_moves[-pattern_length:] == opponent_moves[-1]):
             return get_counter(opponent_moves[-1]), context
 
         key = tuple(my_list[-pattern_length:])
@@ -133,7 +132,7 @@ def strat_pattern_beater(
 
         return get_counter(get_counter(arr[-1][0])), context
     else:
-        return random.randint(0,2), context
+        return random.randint(0, 2), context
 
 
 def strat_patternmatcher_1d_v1(
