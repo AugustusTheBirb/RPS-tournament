@@ -1,13 +1,13 @@
+import random
+from collections.abc import Sequence
 from enum import IntEnum
-from typing import Any, Callable, Sequence, TypeVar
+from typing import Any, Callable, TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
 from sortedcontainers import SortedList
 
 _T = TypeVar("_T")
-
-# pyright: reportExplicitAny=false
 
 
 class Move(IntEnum):
@@ -56,6 +56,10 @@ def get_counter(move_to_counter: Move) -> Move:
         return Move.SCISSORS
     elif move_to_counter == Move.SCISSORS:
         return Move.ROCK
+
+
+def get_random_move() -> Move:
+    return random.choice(list(Move))
 
 
 def get_rated_substrings_v1(
