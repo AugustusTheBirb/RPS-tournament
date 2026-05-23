@@ -12,10 +12,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from strategies import Strategy
+
 if TYPE_CHECKING:
+    from numpy.typing import NDArray
     from pandas.core.api import DataFrame
 
-    from strategies import Strategy
 
 from utils import MoveHistory, move_list_to_str, resolve_moves
 
@@ -45,8 +47,11 @@ def simulate_game(
             the second player.
 
     """
-    score_1_per_round = np.empty(round_count, dtype=int)
-    score_2_per_round = np.empty(round_count, dtype=int)
+    score_1_per_round: NDArray[np.object_] | None = None
+    score_2_per_round: NDArray[np.object_] | None = None
+    if plot:
+        score_1_per_round = np.empty(round_count, dtype=int)
+        score_2_per_round = np.empty(round_count, dtype=int)
 
     strategy_1_history: MoveHistory = np.empty(round_count, dtype=object)
     strategy_1_score = 0
@@ -75,7 +80,7 @@ def simulate_game(
         strategy_2_score += delta_2
         strategy_2_history[i] = move_2
 
-        if plot:
+        if plot and score_1_per_round is not None and score_2_per_round is not None:
             score_1_per_round[i] = strategy_1_score
             score_2_per_round[i] = strategy_2_score
 
@@ -89,7 +94,7 @@ def simulate_game(
             f"{move_list_to_str(list(strategy_2_history))}",
         )
 
-    if plot:
+    if plot and score_1_per_round is not None and score_2_per_round is not None:
         rounds = np.arange(1, round_count + 1)
         _ = plt.plot(rounds, score_1_per_round, label=strategy_1.name)
         _ = plt.plot(rounds, score_2_per_round, label=strategy_2.name)

@@ -7,7 +7,7 @@ authors = [
   { name = "Augustas Rinkevičius" },
   { name = "Lukas Stavaris", email = "programming@stavarisgmail.com" },
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
   "matplotlib>=3.10.9",
   "numpy>=2.4.5",
@@ -31,7 +31,7 @@ reportMissingTypeStubs = false
 reportUnknownMemberType = false
 
 [tool.ruff]
-target-version = "py314"
+target-version = "py313"
 output-format = "full"
 lint.select = [
   # https://beta.ruff.rs/docs/rules

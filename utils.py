@@ -3,14 +3,12 @@ Module that provides helper functions and classes for
 the strategies that compete in the RPS tournament.
 """
 
+from collections.abc import Sequence
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 
 class Move(IntEnum):

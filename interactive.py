@@ -6,7 +6,6 @@ To play against a strategy simply launch the program and then follow the instruc
 
 import inspect
 import time
-from typing import Any
 
 import numpy as np
 
@@ -17,13 +16,15 @@ from utils import Move, MoveHistory, resolve_moves
 if __name__ == "__main__":
     strategy_list: list[Strategy] = [
         obj()
-        for name, obj in vars(strategies).items()
-        if name != "Strategy" and inspect.isclass(obj) and issubclass(obj, Strategy)
+        for _, obj in vars(strategies).items()
+        if inspect.isclass(obj)
+        and not inspect.isabstract(obj)
+        and issubclass(obj, Strategy)
     ]
 
     print("Strategies:")
 
-    for i, (strategy) in enumerate(strategy_list):
+    for i, strategy in enumerate(strategy_list):
         print(f"{i}: {strategy.name}")
 
     retry: bool = True
@@ -53,7 +54,6 @@ if __name__ == "__main__":
 
     strategy = strategy_list[index]
     strategy_history: MoveHistory = np.empty(1000, dtype=object)
-    strategy_context: Any | None = None
     strategy_move: Move
 
     quit_loop: bool = False
@@ -66,9 +66,10 @@ if __name__ == "__main__":
                 break
             elif command == "r":
                 player_move = Move.ROCK
-                print("Rock vs. ", end="")
+                print("Rock     vs. ", end="")
                 break
             elif command == "p":
+                print("Paper    vs. ", end="")
                 player_move = Move.PAPER
 
                 break

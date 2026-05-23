@@ -34,18 +34,24 @@ A strategy is a python function that takes in a move history ('my_moves' and 'op
 
 An example strategy:
 ```python
-def strat_beats_last(
-    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
-) -> tuple[Move, Any | None]:
+class StratBeatsLast(Strategy):
     """
-    Plays the move that beats the last played move
+    Play the move that beats the last played move.
 
-    Author: Alice, Bob, John
+    Author: Alice, Bob
     """
-    if len(opponent_moves) == 0:
-        return random.choice(list(Move)), None
 
-    return get_counter(opponent_moves[-1]), None
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.name: str = "beats_last"
+
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        if len(opponent_moves) == 0:
+            return self.get_first_move()
+
+        return self.get_counter_move(opponent_moves[-1])
 ```
 
 
