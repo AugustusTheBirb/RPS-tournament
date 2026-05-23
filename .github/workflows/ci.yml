@@ -24,3 +24,6 @@ jobs:
 
       - name: Basedpyright
         run: uv run basedpyright
+
+      - name: Check notebook outputs are stripped
+        run: uv run nbstripout --verify .

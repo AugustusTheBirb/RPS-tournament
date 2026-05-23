@@ -24,7 +24,6 @@ Score is determined according to this matrix for each individual move
 | **S** | -1,1 | 1,-1 | 0,0 |
 
 Rock beats scissors, scissors beat paper, paper beats rock.
-
 ## What is a strategy
 
 A strategy is a python function that takes in a move history ('my_moves' and 'opponent_moves') and a context variable, histories are n length arrays, context can be of any type. Strategy function returns one of the moves (Move.ROCK, Move.PAPER, Move.SCISSORS) from the same set and some context. It should contain a docstring with description of your strategy and your name/pseudonym.
@@ -70,6 +69,7 @@ uv sync --group dev
 uv run ruff format
 uv run ruff check
 uv run basedpyright
+uv run nbstripout . # Strip jupyter outputs, so git history stays intact
 ```
 
 Submit it via this [form](https://forms.gle/uk3tAW2y4vxVbxyLA)
