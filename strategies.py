@@ -1,3 +1,13 @@
+"""
+Module that implements strategies that compete in the RPS tournament.
+
+To add a strategy simply implement the abstact class Strategy in this file,
+and it will automatically be registered
+
+To add a strategy group, create a variable of type list[Strategy] and name
+it so is starts with "group_".
+"""
+
 import bisect
 import random
 from abc import ABC, abstractmethod
@@ -21,6 +31,8 @@ from utils import (
 
 
 class Strategy(ABC):
+    """An interface for all RPS strategies."""
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -29,26 +41,30 @@ class Strategy(ABC):
     @abstractmethod
     def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
         """
-        (Docstring for all strategies)
+        Make a move accorind to previous move history.
+
         Args:
-            my_moves: A history of this strategy moves this game
-            opponent_moves: A history of opponent strategy moves this game
+            my_moves: A history of this strategy moves this game.
+            opponent_moves: A history of opponent strategy moves this game.
+
         Returns:
-            move: A move this strategy will make next
+            A move this strategy will make next.
+
         """
 
     @staticmethod
     def get_counter_move(move: Move, level: int = 1) -> Move:
         """
-        Gives a move that counters the given moveste
+        Give a move that counters the given moveste.
 
         Args:
-            move_to_counter: An RPS move you want to beat
-            level=1: How many times to counter a move
-        Returns:
-            A move that beats the provided move
-        """
+            move: An RPS move you want to beat.
+            level: How many times to counter a move.
 
+        Returns:
+            A move that beats the provided move.
+
+        """
         for _ in range(level):
             if move == Move.ROCK:
                 move = Move.PAPER
@@ -62,30 +78,28 @@ class Strategy(ABC):
     @staticmethod
     def get_first_move() -> Move:
         """
-        Gives a first move, if not sure
+        Give a first move, if not sure.
 
         Returns:
-            Returns a first standardised move
-        """
+            Returns a first standardised move.
 
+        """
         return Strategy.get_random_move()
 
     @staticmethod
     def get_random_move() -> Move:
         """
-        Returns a random move
+        Return a random move.
 
         Returns:
-            A random Move
-        """
+            A random Move.
 
+        """
         return random.choice(list(Move))
 
 
 class StratBeatsLast(Strategy):
-    """
-    Plays the move that beats the last played move
-    """
+    """Play the move that beats the last played move."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -101,9 +115,7 @@ class StratBeatsLast(Strategy):
 
 
 class StratBeatsLastMeta1(Strategy):
-    """
-    Plays the move that beats the move that beats the last played move
-    """
+    """Play the move that beats the move that beats the last played move."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -131,9 +143,7 @@ class StratBeatsLastMeta1(Strategy):
 
 
 class StratBeatsModal(Strategy):
-    """
-    Picks the move that beats the modal move among the opponents moves
-    """
+    """Pick the move that beats the modal move among the opponents moves."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -147,16 +157,15 @@ class StratBeatsModal(Strategy):
 
         most_common_move: Move
         most_common_move, _ = sorted(
-            Counter(opponent_moves).items(), key=lambda x: x[1]
+            Counter(opponent_moves).items(),
+            key=lambda x: x[1],
         )[-1]
 
         return self.get_counter_move(most_common_move)
 
 
 class StratPaperOnly(Strategy):
-    """
-    A primitive and bad strategy, that only plays paper
-    """
+    """A primitive and bad strategy, that only plays paper."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -170,7 +179,7 @@ class StratPaperOnly(Strategy):
 
 class StratPatternBeater(Strategy):
     """
-    Plays the move that would counter what a pattern matcher would predict it
+    Play the move that would counter what a pattern matcher would predict it
     would play. Result is that it confuses 1d pattern matchers into playing the
     the same move over and over again. Exploits this.
 
@@ -214,7 +223,8 @@ class StratPatternBeater(Strategy):
 
             predicted_move: Move
             predicted_move, _ = sorted(
-                move_appearance_count.items(), key=lambda x: x[1]
+                move_appearance_count.items(),
+                key=lambda x: x[1],
             )[-1]
 
             return self.get_counter_move(predicted_move, level=2)
@@ -224,7 +234,7 @@ class StratPatternBeater(Strategy):
 
 class PatternmatcherStrategyV1(Strategy, ABC):
     """
-    An interface for patternmatcher v1 strategies
+    An interface for patternmatcher v1 strategies.
 
     Author: lukassta
     """
@@ -255,11 +265,11 @@ class PatternmatcherStrategyV1(Strategy, ABC):
         superstring: str,
     ) -> None:
         """
-        Returns all substrings in a string rated by occurance
-        chance
+        Return all substrings in a string rated by occurance
+        chance.
 
         Score calculations logic:
-        score (per occurance)= base + letter_count ^ mult
+        score (per occurance)= base + letter_count ^ mult.
 
         it tries to ballance shorter letter combinations with
         longer ones
@@ -271,25 +281,13 @@ class PatternmatcherStrategyV1(Strategy, ABC):
         favours longer substrings
 
         Args:
-            string: a string to find all substrings
-            min_lenght: minimum length of substrings
-            max_lenght: maximum length of substrings
-            base_score: score given to a substring
-            letter_score_mult: multiplier of the base score
-                for each letter
-            context: An int of previoulsy evaluated letters count,
-                a dict of perviously found substrings and their
-                scores and a sorted list of substrins and scores,
-                purelyan optimisation
-        Returns:
-            evaluated_moves: An int of previoulsy evaluated letter count
-            rated_substrings: A dict of found substrings as keys, and scores as values
-            sorted_substrings: A SortedList of score and substring tuples
-        """
+            superstring: a string to find all substrings.
 
+        """
         for i in range(self.processed_move_count, len(superstring) + 1):
             for letter_count in range(
-                self.min_sublist_length, self.max_sublist_length + 1
+                self.min_sublist_length,
+                self.max_sublist_length + 1,
             ):
                 if i - letter_count < 0:
                     continue
@@ -299,7 +297,7 @@ class PatternmatcherStrategyV1(Strategy, ABC):
 
                 if substring in self.rated_substrings:
                     self.sorted_substrings.remove(
-                        (self.rated_substrings[substring], substring)
+                        (self.rated_substrings[substring], substring),
                     )
                     self.rated_substrings[substring] -= score
                 else:
@@ -317,7 +315,7 @@ class StratPatternmatcher1dV1(PatternmatcherStrategyV1):
     """
     A more complex strategy, which tries to find a pattern in the
     opponets moves, to defeat the opponent, it is quite dependant
-    on its parameters
+    on its parameters.
 
     Author: lukassta
     """
@@ -342,7 +340,7 @@ class StratPatternmatcher1dV1(PatternmatcherStrategyV1):
     def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
         self.move_string: str
         self.move_string += move_list_to_str(
-            list(opponent_moves[self.processed_move_count :])
+            list(opponent_moves[self.processed_move_count :]),
         )
 
         self.update_rated_substrings(
@@ -362,7 +360,7 @@ class StratPatternmatcher2dV1(PatternmatcherStrategyV1):
     """
     A more complex strategy, which tries to find a pattern in its and
     opponent strategy move combinations, to defeat the opponent, it is
-    quite dependant on its parameters
+    quite dependant on its parameters.
 
     Author: lukassta
     """
@@ -390,7 +388,7 @@ class StratPatternmatcher2dV1(PatternmatcherStrategyV1):
                 my_moves[self.processed_move_count :],
                 opponent_moves[self.processed_move_count :],
                 strict=True,
-            )
+            ),
         )
         self.move_string: str
         self.move_string += move_pair_list_to_str(self.move_pair_list)
@@ -409,9 +407,7 @@ class StratPatternmatcher2dV1(PatternmatcherStrategyV1):
 
 
 class StratR2P2S6(Strategy):
-    """
-    Plays randomly in a 2:2:6 ratio
-    """
+    """Play randomly in a 2:2:6 ratio."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -422,22 +418,20 @@ class StratR2P2S6(Strategy):
     def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
         rock_chance: float = 0.2
         paper_chance: float = 0.2
-        # scissors_chance = 0.6
 
         r = random.random()
         if r < rock_chance:
             return Move.ROCK
-        elif r < rock_chance + paper_chance:
+        if r < rock_chance + paper_chance:
             return Move.PAPER
-        else:
-            return Move.SCISSORS
+        return Move.SCISSORS
 
 
 class StratRandom(Strategy):
     """
     A primitive strategy which fully randomizes its moves, it is
     interesting that this strategy is unexploitable, it will have
-    an equal score with all other strategies
+    an equal score with all other strategies.
     """
 
     def __init__(self) -> None:
@@ -451,9 +445,7 @@ class StratRandom(Strategy):
 
 
 class StratRockOnly(Strategy):
-    """
-    A primitive and bad strategy, that only plays rock
-    """
+    """A primitive and bad strategy, that only plays rock."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -468,7 +460,7 @@ class StratRockOnly(Strategy):
 class StratRockOrPaper(Strategy):
     """
     A primitive strategy which plays rock or scissors randomly,
-    a twist on random_strat, but should be way worse
+    a twist on random_strat, but should be way worse.
     """
 
     def __init__(self) -> None:
@@ -482,9 +474,7 @@ class StratRockOrPaper(Strategy):
 
 
 class StratRPSCyclic(Strategy):
-    """
-    Plays Rock->Paper->Scissors in a cycle
-    """
+    """Play Rock->Paper->Scissors in a cycle."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -497,9 +487,7 @@ class StratRPSCyclic(Strategy):
 
 
 class StratScissorsOnly(Strategy):
-    """
-    A primitive and bad strategy, that only plays scissors
-    """
+    """A primitive and bad strategy, that only plays scissors."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -513,8 +501,8 @@ class StratScissorsOnly(Strategy):
 
 class StratBeatsOpDistribution(Strategy):
     """
-    Plays a move that beats a move randomly chosen from the distribution
-    of opponents moves
+    Play a move that beats a move randomly chosen from the distribution
+    of opponents moves.
     """
 
     def __init__(self) -> None:
@@ -536,7 +524,9 @@ class StratBeatsOpDistribution(Strategy):
         self.appearance_count[opponent_moves[-1]] += 1
 
         predicted_move: Move = random.choices(
-            list(Move), weights=list(self.appearance_count.values()), k=1
+            list(Move),
+            weights=list(self.appearance_count.values()),
+            k=1,
         )[0]
 
         return self.get_counter_move(predicted_move)
@@ -559,7 +549,7 @@ group_primitive: list[Strategy] = [
     StratBeatsOpDistribution(),
 ]
 group_meta: list[Strategy] = [StratBeatsLastMeta1()]
-# group_pattern: list[Strategy] = [
-#     StratPatternmatcher1dV1(),
-#     StratPatternmatcher2dV1(),
-# ]
+group_pattern: list[Strategy] = [
+    StratPatternmatcher1dV1(),
+    StratPatternmatcher2dV1(),
+]

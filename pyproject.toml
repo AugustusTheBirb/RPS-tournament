@@ -71,10 +71,25 @@ lint.select = [
   "TID",   # flake8-tidy-imports
   "UP",    # pyupgrade
   "W",     # pycodestyle
-  "YTT",   # flake8-2020
+  "ANN",   # flake8-annotations
+  "COM",   # flake8-commas
+  "D",     # pydocstyle
+  "ERA",   # eradicate
+  "FBT",   # flake8-boolean-trap
+  "PTH",   # flake8-use-pathlib
+  "Q",     # flake8-quotes
+  "RET",   # flake8-return
+  "TCH",   # flake8-type-checking
+  "TRY",   # tryceratops "YTT",
 ]
 lint.ignore = [
+  "COM812",
+  "D107",
+  "D203",
+  "D205",
+  "D212",
   "S101",    # Use of `assert` detected -- DO NOT FIX
   "S311",    # Standard pseudo-random generators are not suitable for cryptographic purposes
   "SIM300",  # Yoda conditions
 ]
+

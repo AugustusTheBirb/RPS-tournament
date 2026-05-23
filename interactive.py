@@ -1,3 +1,9 @@
+"""
+Module that lets a player play against the RPS tournament strategies.
+
+To play against a strategy simply launch the program and then follow the instructions.
+"""
+
 import inspect
 import time
 from typing import Any
