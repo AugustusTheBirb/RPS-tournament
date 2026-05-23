@@ -1,12 +1,10 @@
+import bisect
 from collections.abc import Sequence
 from enum import IntEnum
-from typing import TypeVar
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from sortedcontainers import SortedList
-
-_T = TypeVar("_T")
 
 
 class Move(IntEnum):
@@ -46,8 +44,8 @@ def get_rated_substrings_v1(
     max_lenght: int,
     base_score: float,
     letter_score_mult: float,
-    context: tuple[int, dict[str, float], SortedList],
-) -> tuple[int, dict[str, float], SortedList]:
+    context: tuple[int, dict[str, float], list[tuple[float, str]]],
+) -> tuple[int, dict[str, float], list[tuple[float, str]]]:
     """
     Returns all substrings in a string rated by occurance
     chance
@@ -82,7 +80,7 @@ def get_rated_substrings_v1(
     """
     evaluated_moves: int
     rated_substrings: dict[str, float]
-    sorted_substrings: SortedList
+    sorted_substrings: list[tuple[float, str]]
 
     evaluated_moves, rated_substrings, sorted_substrings = context
 
@@ -96,16 +94,16 @@ def get_rated_substrings_v1(
 
             if substring in rated_substrings:
                 sorted_substrings.remove((rated_substrings[substring], substring))
-                rated_substrings[substring] += score
+                rated_substrings[substring] -= score
             else:
-                rated_substrings[substring] = score
+                rated_substrings[substring] = -score
 
-            sorted_substrings.add((rated_substrings[substring], substring))
+            bisect.insort(sorted_substrings, (rated_substrings[substring], substring))
 
     return len(string), rated_substrings, sorted_substrings
 
 
-def is_suffix(base: Sequence[_T], suffix: Sequence[_T]) -> bool:
+def is_suffix(base: Sequence[Any], suffix: Sequence[Any]) -> bool:
     """
     Checks if one sequence is a suffix of the other
 

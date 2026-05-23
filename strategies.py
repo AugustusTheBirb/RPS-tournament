@@ -4,7 +4,6 @@ from collections import Counter
 from typing import override
 
 import numpy as np
-from sortedcontainers import SortedList
 
 from utils import (
     LETTER_TO_MOVE,
@@ -40,7 +39,8 @@ class Strategy(ABC):
 
         pass
 
-    def get_counter(self, move: Move, level: int = 1) -> Move:
+    @staticmethod
+    def get_counter_move(move: Move, level: int = 1) -> Move:
         """
         Gives a move that counters the given moveste
 
@@ -61,7 +61,19 @@ class Strategy(ABC):
 
         return move
 
-    def get_random_move(self) -> Move:
+    @staticmethod
+    def get_first_move() -> Move:
+        """
+        Gives a first move, if not sure
+
+        Returns:
+            Returns a first standardised move
+        """
+
+        return Strategy.get_random_move()
+
+    @staticmethod
+    def get_random_move() -> Move:
         """
         Returns a random move
 
@@ -85,9 +97,9 @@ class StratBeatsLast(Strategy):
     @override
     def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
         if len(opponent_moves) == 0:
-            return Move.ROCK
+            return self.get_first_move()
 
-        return self.get_counter(opponent_moves[-1])
+        return self.get_counter_move(opponent_moves[-1])
 
 
 class StratBeatsLastMeta1(Strategy):
@@ -105,19 +117,19 @@ class StratBeatsLastMeta1(Strategy):
         meta_flag: bool = False
 
         if len(opponent_moves) == 0:
-            return self.get_random_move()
+            return self.get_first_move()
 
         if len(opponent_moves) >= 50:
-            my_score_50 = resolve_move_lists(
+            my_score_50: int = resolve_move_lists(
                 list(my_moves[-50:-1]), list(opponent_moves[-50:-1])
             )[0]
             if my_score_50 < 5:
                 meta_flag = True
 
         if meta_flag:
-            return self.get_counter(my_moves[-1], level=2)
+            return self.get_counter_move(my_moves[-1], level=2)
         else:
-            return self.get_counter(opponent_moves[-1])
+            return self.get_counter_move(opponent_moves[-1])
 
 
 class StratBeatsModal(Strategy):
@@ -133,11 +145,14 @@ class StratBeatsModal(Strategy):
     @override
     def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
         if len(opponent_moves) == 0:
-            return Move.ROCK
+            return self.get_first_move()
 
-        arr = sorted(list(Counter(opponent_moves).items()), key=lambda x: x[1])
+        most_common_move: Move
+        most_common_move, _ = sorted(
+            list(Counter(opponent_moves).items()), key=lambda x: x[1]
+        )[-1]
 
-        return self.get_counter(arr[-1][0])
+        return self.get_counter_move(most_common_move)
 
 
 class StratPaperOnly(Strategy):
@@ -176,33 +191,38 @@ class StratPatternBeater(Strategy):
 
     @override
     def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
-        if len(my_moves) > len(self.my_list):
+        new_key_value = {Move.ROCK: 0, Move.PAPER: 0, Move.SCISSORS: 0}
+
+        if len(self.my_list) < len(my_moves):
             new_move: Move = my_moves[-1]
 
             if len(self.my_list) >= self.pattern_length:
                 key = tuple(self.my_list[-self.pattern_length :])
 
                 if key not in self.patterns:
-                    self.patterns[key] = {Move.ROCK: 0, Move.PAPER: 0, Move.SCISSORS: 0}
+                    self.patterns[key] = new_key_value
 
                 self.patterns[key][new_move] += 1
 
             self.my_list.append(new_move)
 
-        if len(my_moves) > 10:
+        if 10 < len(my_moves):
             if np.all(opponent_moves[-self.pattern_length :] == opponent_moves[-1]):
-                return self.get_counter(opponent_moves[-1])
+                return self.get_counter_move(opponent_moves[-1])
 
             key = tuple(self.my_list[-self.pattern_length :])
-            dict = self.patterns.get(
-                key, {Move.ROCK: 0, Move.PAPER: 0, Move.SCISSORS: 0}
+            move_appearance_count = self.patterns.get(key, new_key_value)
+
+            predicted_move: Move
+            predicted_move, _ = sorted(
+                list(move_appearance_count.items()), key=lambda x: x[1]
+            )[-1]
+
+            return self.get_counter_move(
+                predicted_move, level=2
             )
 
-            arr = sorted(list(dict.items()), key=lambda x: x[1])
-
-            return self.get_counter(arr[-1][0], level=2)
-        else:
-            return self.get_random_move()
+        return self.get_random_move()
 
 
 class StratPatternmatcher1dV1(Strategy):
@@ -230,7 +250,7 @@ class StratPatternmatcher1dV1(Strategy):
 
         self.iteration: int = 0
         self.rated_substrings: dict[str, float] = {}
-        self.sorted_substrings: SortedList = SortedList()
+        self.sorted_substrings: list[tuple[float, str]] = []
         self.opponent_move_string: str = ""
 
     @override
@@ -250,11 +270,11 @@ class StratPatternmatcher1dV1(Strategy):
             )
         )
 
-        for _, substring in reversed(self.sorted_substrings):  # pyright: ignore[reportUnknownVariableType]
-            if is_suffix(self.opponent_move_string, substring[:-1]):  # pyright: ignore[reportUnknownArgumentType]
+        for _, substring in self.sorted_substrings:
+            if is_suffix(self.opponent_move_string, substring[:-1]):
                 predicted_move: Move = LETTER_TO_MOVE[substring[-1]]
 
-                return self.get_counter(predicted_move)
+                return self.get_counter_move(predicted_move)
 
         return self.get_random_move()
 
@@ -284,7 +304,7 @@ class StratPatternmatcher2dV1(Strategy):
 
         self.iteration: int = 0
         self.rated_substrings: dict[str, float] = {}
-        self.sorted_substrings: SortedList = SortedList()
+        self.sorted_substrings: list[tuple[float, str]] = []
         self.move_pair_string: str = ""
 
     @override
@@ -305,11 +325,11 @@ class StratPatternmatcher2dV1(Strategy):
             )
         )
 
-        for _, substring in reversed(self.sorted_substrings):  # pyright: ignore[reportUnknownVariableType]
-            if is_suffix(self.move_pair_string, substring[:-1]):  # pyright: ignore[reportUnknownArgumentType]
+        for _, substring in self.sorted_substrings:
+            if is_suffix(self.move_pair_string, substring[:-1]):
                 predicted_move: Move = LETTER_TO_MOVE_PAIR[substring[-1]][1]
 
-                return self.get_counter(predicted_move)
+                return self.get_counter_move(predicted_move)
 
         return self.get_random_move()
 
@@ -433,7 +453,7 @@ class StratBeatsOpDistribution(Strategy):
     @override
     def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
         if len(opponent_moves) == 0:
-            return self.get_random_move()
+            return self.get_first_move()
 
         self.appearance_count[opponent_moves[-1]] += 1
 
@@ -441,7 +461,7 @@ class StratBeatsOpDistribution(Strategy):
             list(Move), weights=list(self.appearance_count.values()), k=1
         )[0]
 
-        return self.get_counter(predicted_move)
+        return self.get_counter_move(predicted_move)
 
 
 group_bad: list[Strategy] = [
