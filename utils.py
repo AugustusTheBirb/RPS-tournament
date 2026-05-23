@@ -1,7 +1,6 @@
-import random
 from collections.abc import Sequence
 from enum import IntEnum
-from typing import Any, Callable, TypeVar
+from typing import TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
@@ -38,28 +37,6 @@ MOVE_PAIR_LETTERS = {
 LETTER_TO_MOVE_PAIR = {v: k for k, v in MOVE_PAIR_LETTERS.items()}
 
 MoveHistory = NDArray[np.object_]
-Strategy = Callable[[MoveHistory, MoveHistory, Any | None], tuple[Move, Any | None]]
-
-
-def get_counter(move_to_counter: Move) -> Move:
-    """
-    Gives a move that counters the given move
-
-    Args:
-        move_to_counter: An RPS move you want to beat
-    Returns:
-        A move that beats the provided move
-    """
-    if move_to_counter == Move.ROCK:
-        return Move.PAPER
-    elif move_to_counter == Move.PAPER:
-        return Move.SCISSORS
-    elif move_to_counter == Move.SCISSORS:
-        return Move.ROCK
-
-
-def get_random_move() -> Move:
-    return random.choice(list(Move))
 
 
 def get_rated_substrings_v1(

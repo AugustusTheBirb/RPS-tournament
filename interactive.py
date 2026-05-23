@@ -5,74 +5,20 @@ from typing import Any
 import numpy as np
 
 import strategies
-from utils import Move, MoveHistory, Strategy, resolve_moves
-
-
-def simulate_game(
-    round_count: int, strategy_1: Strategy, strategy_2: Strategy
-) -> tuple[tuple[int, float], tuple[int, float]]:
-    """
-    Simulates a game - a set of multiple rounds, scores of both
-    players are retured as a result
-
-    Args:
-        round_count: An integer indicating how many rounds will be played
-    Returns:
-        strategy_1_score: An integer of how many points were scored by
-            the first player
-        strategy_2_score: An integer of how many points were scored by
-            the second player
-    """
-    strategy_1_history: MoveHistory = np.empty(round_count, dtype=object)
-    strategy_1_score = 0
-    strategy_1_time_ms: float = 0
-    context_1: Any | None = None
-
-    strategy_2_history: MoveHistory = np.empty(round_count, dtype=object)
-    strategy_2_score = 0
-    strategy_2_time_ms: float = 0
-    context_2: Any | None = None
-
-    for i in range(round_count):
-        start_time = time.time()
-        move_1, context_1 = strategy_1(
-            strategy_1_history[:i], strategy_2_history[:i], context_1
-        )
-        end_time = time.time()
-        strategy_1_time_ms += (end_time - start_time) * 1000
-
-        start_time = time.time()
-        move_2, context_2 = strategy_2(
-            strategy_2_history[:i], strategy_1_history[:i], context_2
-        )
-        end_time = time.time()
-        strategy_2_time_ms += (end_time - start_time) * 1000
-
-        delta_1, delta_2 = resolve_moves(move_1, move_2)
-
-        strategy_1_score += delta_1
-        strategy_1_history[i] = move_1
-
-        strategy_2_score += delta_2
-        strategy_2_history[i] = move_2
-
-    return (strategy_1_score, strategy_1_time_ms), (
-        strategy_2_score,
-        strategy_2_time_ms,
-    )
-
+from strategies import Strategy
+from utils import Move, MoveHistory, resolve_moves
 
 if __name__ == "__main__":
-    strategy_list: list[tuple[str, Strategy]] = [
-        (name[6:], obj)
-        for name, obj in inspect.getmembers(strategies, inspect.isfunction)
-        if name[:6] == "strat_"
+    strategy_list: list[Strategy] = [
+        obj()
+        for name, obj in vars(strategies).items()
+        if name != "Strategy" and inspect.isclass(obj) and issubclass(obj, Strategy)
     ]
 
     print("Strategies:")
 
-    for i, (name, _) in enumerate(strategy_list):
-        print(f"{i}: {name}")
+    for i, (strategy) in enumerate(strategy_list):
+        print(f"{i}: {strategy.name}")
 
     retry: bool = True
     index: int = 0
@@ -91,7 +37,7 @@ if __name__ == "__main__":
         except ValueError:
             print("Please enter an integer")
 
-    print(f"Selected {strategy_list[index][0]}")
+    print(f"Selected {strategy_list[index].name}")
     print("To exit enter 'Q'")
     print("To make your move enter 'R'(ock), 'P'(aper) or 'S'(cissors)")
 
@@ -99,7 +45,7 @@ if __name__ == "__main__":
     player_score = 0
     player_move: Move = Move.ROCK  # Initialize to be bounded
 
-    strategy = strategy_list[index][1]
+    strategy = strategy_list[index]
     strategy_history: MoveHistory = np.empty(1000, dtype=object)
     strategy_context: Any | None = None
     strategy_move: Move
@@ -131,9 +77,7 @@ if __name__ == "__main__":
         if quit:
             break
 
-        strategy_move, strategy_context = strategy(
-            strategy_history[:i], player_history[:i], strategy_context
-        )
+        strategy_move = strategy.make_a_move(strategy_history[:i], player_history[:i])
 
         time.sleep(0.5)
         if strategy_move == Move.ROCK:

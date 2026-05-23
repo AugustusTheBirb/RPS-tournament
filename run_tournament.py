@@ -1,20 +1,29 @@
 import argparse
 import inspect
+import os
 import time
+from collections import defaultdict
+from copy import deepcopy
 from itertools import combinations
-from typing import Any
+from multiprocessing import Pool
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from pandas.core.api import DataFrame
 
 import strategies
-from utils import MoveHistory, Strategy, resolve_moves
+from strategies import Strategy
+from utils import MoveHistory, move_list_to_str, resolve_moves
 
 
 def simulate_game(
-    round_count: int, strategy_1: Strategy, strategy_2: Strategy
-) -> tuple[tuple[int, float], tuple[int, float]]:
+    round_count: int,
+    strategy_1: Strategy,
+    strategy_2: Strategy,
+    verbose: bool = False,
+    plot: bool = False,
+) -> tuple[tuple[Strategy, int, float], tuple[Strategy, int, float]]:
     """
     Simulates a game - a set of multiple rounds, scores of both
     players are retured as a result
@@ -27,28 +36,25 @@ def simulate_game(
         strategy_2_score: An integer of how many points were scored by
             the second player
     """
+    score_1_per_round = np.empty(round_count, dtype=int)
+    score_2_per_round = np.empty(round_count, dtype=int)
+
     strategy_1_history: MoveHistory = np.empty(round_count, dtype=object)
     strategy_1_score = 0
     strategy_1_time_ms: float = 0
-    context_1: Any | None = None
 
     strategy_2_history: MoveHistory = np.empty(round_count, dtype=object)
     strategy_2_score = 0
     strategy_2_time_ms: float = 0
-    context_2: Any | None = None
 
     for i in range(round_count):
         start_time = time.time()
-        move_1, context_1 = strategy_1(
-            strategy_1_history[:i], strategy_2_history[:i], context_1
-        )
+        move_1 = strategy_1.make_a_move(strategy_1_history[:i], strategy_2_history[:i])
         end_time = time.time()
         strategy_1_time_ms += (end_time - start_time) * 1000
 
         start_time = time.time()
-        move_2, context_2 = strategy_2(
-            strategy_2_history[:i], strategy_1_history[:i], context_2
-        )
+        move_2 = strategy_2.make_a_move(strategy_2_history[:i], strategy_1_history[:i])
         end_time = time.time()
         strategy_2_time_ms += (end_time - start_time) * 1000
 
@@ -60,7 +66,29 @@ def simulate_game(
         strategy_2_score += delta_2
         strategy_2_history[i] = move_2
 
-    return (strategy_1_score, strategy_1_time_ms), (
+        if plot:
+            score_1_per_round[i] = strategy_1_score
+            score_2_per_round[i] = strategy_2_score
+
+    if verbose:
+        print(
+            f"{strategy_1.name.ljust(20)}: {move_list_to_str(list(strategy_1_history))}"
+        )
+        print(
+            f"{strategy_2.name.ljust(20)}: {move_list_to_str(list(strategy_2_history))}"
+        )
+
+    if plot:
+        rounds = np.arange(1, round_count + 1)
+        _ = plt.plot(rounds, score_1_per_round, label=strategy_1.name)
+        _ = plt.plot(rounds, score_2_per_round, label=strategy_2.name)
+        _ = plt.xlabel("Round")
+        _ = plt.ylabel("Cumulative score")
+        _ = plt.legend()
+        _ = plt.show()
+
+    return (strategy_1, strategy_1_score, strategy_1_time_ms), (
+        strategy_2,
         strategy_2_score,
         strategy_2_time_ms,
     )
@@ -86,37 +114,31 @@ def simulate_tournament(
 
     game_count: int = len(strategy_set) - 1
 
-    strategy_matchup_scores: dict[tuple[str, str], float] = {}
-    strategy_times: dict[str, float] = {
-        strategy.__name__[6:]: 0 for strategy in strategy_set
-    }
+    strategy_matchup_scores: defaultdict[tuple[str, str], float] = defaultdict(float)
+    strategy_times: defaultdict[str, float] = defaultdict(float)
 
-    for strategy_1, strategy_2 in combinations(strategy_set, 2):
-        strategy_1_name: str = strategy_1.__name__[6:]
-        total_score_1: int = 0
-        total_time_1: float = 0
+    strategy_pairs = combinations(strategy_set, 2)
+    argument_list = [(round_count, *strategy_pair) for strategy_pair in strategy_pairs]
+    # Copy strategy object, so they do not interfere with eachother
+    argument_list = [
+        (round_count, deepcopy(strat_1), deepcopy(strat_2))
+        for (round_count, strat_1, strat_2) in argument_list
+        for _ in range(repeat_count)
+    ]
 
-        strategy_2_name: str = strategy_2.__name__[6:]
-        total_score_2: int = 0
-        total_time_2: float = 0
+    with Pool(processes=os.cpu_count()) as pool:
+        results = pool.starmap(simulate_game, argument_list)
 
-        for _ in range(repeat_count):
-            (delta_1, time_1), (delta_2, time_2) = simulate_game(
-                round_count, strategy_1, strategy_2
-            )
-            total_score_1 += delta_1
-            total_time_1 += time_1
-            total_score_2 += delta_2
-            total_time_2 += time_2
-
-        strategy_times[strategy_1_name] += total_time_1 / repeat_count / game_count
-        strategy_matchup_scores[strategy_1_name, strategy_2_name] = (
-            total_score_1 / repeat_count
+    for (strategy_1, score_1, time_1), (strategy_2, score_2, time_2) in results:
+        strategy_matchup_scores[strategy_1.name, strategy_2.name] += (
+            score_1 / repeat_count
         )
-        strategy_times[strategy_2_name] += total_time_2 / repeat_count / game_count
-        strategy_matchup_scores[strategy_2_name, strategy_1_name] = (
-            total_score_2 / repeat_count
+        strategy_times[strategy_1.name] += time_1 / repeat_count / game_count
+
+        strategy_matchup_scores[strategy_2.name, strategy_1.name] += (
+            score_2 / repeat_count
         )
+        strategy_times[strategy_2.name] += time_2 / repeat_count / game_count
 
     df_results: DataFrame = pd.Series(strategy_matchup_scores).unstack()
     df_results["average_score"] = df_results.mean(axis=1)
@@ -158,13 +180,14 @@ def plot_results(df_results: pd.DataFrame):
 
 if __name__ == "__main__":
     strategy_dict: dict[str, Strategy] = {
-        name: obj
-        for name, obj in inspect.getmembers(strategies, inspect.isfunction)
-        if name[:6] == "strat_"
+        name: obj()
+        for name, obj in vars(strategies).items()
+        if name != "Strategy" and inspect.isclass(obj) and issubclass(obj, Strategy)
     }
     group_dict: dict[str, list[Strategy]] = {
         name: obj for name, obj in vars(strategies).items() if name[:6] == "group_"
     }
+
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     _ = parser.add_argument(
         "-g", "--games", help="Number of games to average", type=int, default=3
@@ -195,7 +218,7 @@ if __name__ == "__main__":
 
     if args.competitors is not None:
         for competitor_str in args.competitors:
-            if competitor_str[:6] == "strat_" and competitor_str in strategy_dict:
+            if competitor_str in strategy_dict:
                 strategy_set.add(strategy_dict[competitor_str])
 
             elif competitor_str[:6] == "group_" and competitor_str in group_dict:

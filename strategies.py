@@ -1,6 +1,7 @@
 import random
+from abc import ABC, abstractmethod
 from collections import Counter
-from typing import Any
+from typing import override
 
 import numpy as np
 from sortedcontainers import SortedList
@@ -10,9 +11,6 @@ from utils import (
     LETTER_TO_MOVE_PAIR,
     Move,
     MoveHistory,
-    Strategy,
-    get_counter,
-    get_random_move,
     get_rated_substrings_v1,
     is_suffix,
     move_list_to_str,
@@ -22,86 +20,142 @@ from utils import (
 
 # pyright: reportUnusedParameter=false
 
-"""
-(Docstring for all strategies)
-Args:
-    my_moves: A history of this strategy moves this game
-    opponent_moves: A history of opponent strategy moves this game
-    context: Can be any variable, if unused then None, used for
-        optimisation
-Returns:
-    move: A move this strategy will make next
-    context: Can be any variable, if unused then None
-"""
+
+class Strategy(ABC):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.name: str = "base_strategy_class"
+
+    @abstractmethod
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        """
+        (Docstring for all strategies)
+        Args:
+            my_moves: A history of this strategy moves this game
+            opponent_moves: A history of opponent strategy moves this game
+        Returns:
+            move: A move this strategy will make next
+        """
+
+        pass
+
+    def get_counter(self, move: Move, level: int = 1) -> Move:
+        """
+        Gives a move that counters the given moveste
+
+        Args:
+            move_to_counter: An RPS move you want to beat
+            level=1: How many times to counter a move
+        Returns:
+            A move that beats the provided move
+        """
+
+        for _ in range(level):
+            if move == Move.ROCK:
+                move = Move.PAPER
+            elif move == Move.PAPER:
+                move = Move.SCISSORS
+            elif move == Move.SCISSORS:
+                move = Move.ROCK
+
+        return move
+
+    def get_random_move(self) -> Move:
+        """
+        Returns a random move
+
+        Returns:
+            A random Move
+        """
+
+        return random.choice(list(Move))
 
 
-def strat_beats_last(
-    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
-) -> tuple[Move, Any | None]:
+class StratBeatsLast(Strategy):
     """
     Plays the move that beats the last played move
     """
-    if len(opponent_moves) == 0:
-        return Move.ROCK, None
 
-    return get_counter(opponent_moves[-1]), None
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.name: str = "beats_last"
+
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        if len(opponent_moves) == 0:
+            return Move.ROCK
+
+        return self.get_counter(opponent_moves[-1])
 
 
-def strat_beats_last_meta1(
-    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
-) -> tuple[Move, Any | None]:
+class StratBeatsLastMeta1(Strategy):
     """
     Plays the move that beats the move that beats the last played move
     """
-    meta_flag: bool = False
 
-    if len(opponent_moves) == 0:
-        return get_random_move(), None
+    def __init__(self) -> None:
+        super().__init__()
 
-    if len(opponent_moves) >= 50:
-        my_score_50 = resolve_move_lists(
-            list(my_moves[-50:-1]), list(opponent_moves[-50:-1])
-        )[0]
-        if my_score_50 < 5:
-            meta_flag = True
+        self.name: str = "beats_last_meta"
 
-    move_beats_last: Move = get_counter(opponent_moves[-1])
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        meta_flag: bool = False
 
-    if meta_flag:
-        return get_counter(get_counter(my_moves[-1])), None
-    else:
-        return move_beats_last, None
+        if len(opponent_moves) == 0:
+            return self.get_random_move()
+
+        if len(opponent_moves) >= 50:
+            my_score_50 = resolve_move_lists(
+                list(my_moves[-50:-1]), list(opponent_moves[-50:-1])
+            )[0]
+            if my_score_50 < 5:
+                meta_flag = True
+
+        if meta_flag:
+            return self.get_counter(my_moves[-1], level=2)
+        else:
+            return self.get_counter(opponent_moves[-1])
 
 
-def strat_beats_modal(
-    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
-) -> tuple[Move, Any | None]:
+class StratBeatsModal(Strategy):
     """
     Picks the move that beats the modal move among the opponents moves
     """
-    if len(opponent_moves) == 0:
-        return Move.ROCK, None
 
-    arr = sorted(list(Counter(opponent_moves).items()), key=lambda x: x[1])
+    def __init__(self) -> None:
+        super().__init__()
 
-    return get_counter(arr[-1][0]), None
+        self.name: str = "beats_modal"
+
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        if len(opponent_moves) == 0:
+            return Move.ROCK
+
+        arr = sorted(list(Counter(opponent_moves).items()), key=lambda x: x[1])
+
+        return self.get_counter(arr[-1][0])
 
 
-def strat_paper_only(
-    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
-) -> tuple[Move, Any | None]:
+class StratPaperOnly(Strategy):
     """
     A primitive and bad strategy, that only plays paper
     """
 
-    return Move.PAPER, None
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.name: str = "paper"
+
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        return Move.PAPER
 
 
-def strat_pattern_beater(
-    my_moves: MoveHistory,
-    opponent_moves: MoveHistory,
-    context: tuple[list[Move], dict[tuple[Move, ...], dict[Move, int]]] | None,
-) -> tuple[Move, tuple[list[Move], dict[tuple[Move, ...], dict[Move, int]]]]:
+class StratPatternBeater(Strategy):
     """
     Plays the move that would counter what a pattern matcher would predict it
     would play. Result is that it confuses 1d pattern matchers into playing the
@@ -110,41 +164,48 @@ def strat_pattern_beater(
     Author: AugustusTheBirb
     """
 
-    pattern_length: int = 3
+    def __init__(self, pattern_length: int = 3) -> None:
+        super().__init__()
 
-    if context is None:
-        context = ([], {})
-    my_list, patterns = context
+        self.name: str = "pattern_beater"
 
-    # update context
-    if len(my_moves) > len(my_list):
-        new_move: Move = my_moves[-1]
-        if len(my_list) >= pattern_length:
-            key = tuple(my_list[-pattern_length:])
-            if key not in patterns:
-                patterns[key] = {Move.ROCK: 0, Move.PAPER: 0, Move.SCISSORS: 0}
-            patterns[key][new_move] += 1
-        my_list.append(new_move)
+        self.pattern_length: int = pattern_length
 
-    if len(my_moves) > 10:
-        if np.all(opponent_moves[-pattern_length:] == opponent_moves[-1]):
-            return get_counter(opponent_moves[-1]), context
+        self.my_list: list[Move] = []
+        self.patterns: dict[tuple[Move, ...], dict[Move, int]] = {}
 
-        key = tuple(my_list[-pattern_length:])
-        dict = patterns.get(key, {Move.ROCK: 0, Move.PAPER: 0, Move.SCISSORS: 0})
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        if len(my_moves) > len(self.my_list):
+            new_move: Move = my_moves[-1]
 
-        arr = sorted(list(dict.items()), key=lambda x: x[1])
+            if len(self.my_list) >= self.pattern_length:
+                key = tuple(self.my_list[-self.pattern_length :])
 
-        return get_counter(get_counter(arr[-1][0])), context
-    else:
-        return get_random_move(), context
+                if key not in self.patterns:
+                    self.patterns[key] = {Move.ROCK: 0, Move.PAPER: 0, Move.SCISSORS: 0}
+
+                self.patterns[key][new_move] += 1
+
+            self.my_list.append(new_move)
+
+        if len(my_moves) > 10:
+            if np.all(opponent_moves[-self.pattern_length :] == opponent_moves[-1]):
+                return self.get_counter(opponent_moves[-1])
+
+            key = tuple(self.my_list[-self.pattern_length :])
+            dict = self.patterns.get(
+                key, {Move.ROCK: 0, Move.PAPER: 0, Move.SCISSORS: 0}
+            )
+
+            arr = sorted(list(dict.items()), key=lambda x: x[1])
+
+            return self.get_counter(arr[-1][0], level=2)
+        else:
+            return self.get_random_move()
 
 
-def strat_patternmatcher_1d_v1(
-    my_moves: MoveHistory,
-    opponent_moves: MoveHistory,
-    context: tuple[int, dict[str, float], SortedList, str] | None,
-) -> tuple[Move, tuple[int, dict[str, float], SortedList, str] | None]:
+class StratPatternmatcher1dV1(Strategy):
     """
     A more complex strategy, which tries to find a pattern in the
     opponets moves, to defeat the opponent, it is quite dependant
@@ -152,57 +213,53 @@ def strat_patternmatcher_1d_v1(
 
     Author: lukassta
     """
-    # ========PARAMETERS========
-    MAX_SUBLIST_LENGTH = 4
-    BASE_SUBLIST_SCORE = 1
-    LETTER_SCORE_MULT = 3
-    # ==========================
 
-    if context is None:
-        context = (0, {}, SortedList(), "")
+    def __init__(
+        self,
+        max_sublist_length: int = 4,
+        base_sublist_score: int = 1,
+        letter_score_mult: int = 3,
+    ) -> None:
+        super().__init__()
 
-    iteration: int
-    rated_substrings: dict[str, float]
-    sorted_substrings: SortedList
-    opponent_move_string: str
-    iteration, rated_substrings, sorted_substrings, opponent_move_string = context
+        self.name: str = "patternmatcher_1d"
 
-    opponent_move_string += move_list_to_str(list(opponent_moves[iteration:]))
+        self.max_sublist_length: int = max_sublist_length
+        self.base_sublist_score: int = base_sublist_score
+        self.letter_score_mult: int = letter_score_mult
 
-    iteration, rated_substrings, sorted_substrings = get_rated_substrings_v1(
-        opponent_move_string,
-        min_lenght=1,
-        max_lenght=MAX_SUBLIST_LENGTH,
-        base_score=BASE_SUBLIST_SCORE,
-        letter_score_mult=LETTER_SCORE_MULT,
-        context=(iteration, rated_substrings, sorted_substrings),
-    )
+        self.iteration: int = 0
+        self.rated_substrings: dict[str, float] = {}
+        self.sorted_substrings: SortedList = SortedList()
+        self.opponent_move_string: str = ""
 
-    for _, substring in reversed(sorted_substrings):  # pyright: ignore[reportUnknownVariableType]
-        if is_suffix(opponent_move_string, substring[:-1]):  # pyright: ignore[reportUnknownArgumentType]
-            predicted_move: Move = LETTER_TO_MOVE[substring[-1]]
-            counter_move: Move = get_counter(predicted_move)
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        self.opponent_move_string += move_list_to_str(
+            list(opponent_moves[self.iteration :])
+        )
 
-            return counter_move, (
-                iteration,
-                rated_substrings,
-                sorted_substrings,
-                opponent_move_string,
+        self.iteration, self.rated_substrings, self.sorted_substrings = (
+            get_rated_substrings_v1(
+                self.opponent_move_string,
+                min_lenght=1,
+                max_lenght=self.max_sublist_length,
+                base_score=self.base_sublist_score,
+                letter_score_mult=self.letter_score_mult,
+                context=(self.iteration, self.rated_substrings, self.sorted_substrings),
             )
+        )
 
-    return get_random_move(), (
-        iteration,
-        rated_substrings,
-        sorted_substrings,
-        opponent_move_string,
-    )
+        for _, substring in reversed(self.sorted_substrings):  # pyright: ignore[reportUnknownVariableType]
+            if is_suffix(self.opponent_move_string, substring[:-1]):  # pyright: ignore[reportUnknownArgumentType]
+                predicted_move: Move = LETTER_TO_MOVE[substring[-1]]
+
+                return self.get_counter(predicted_move)
+
+        return self.get_random_move()
 
 
-def strat_patternmatcher_2d_v1(
-    my_moves: MoveHistory,
-    opponent_moves: MoveHistory,
-    context: tuple[int, dict[str, float], SortedList, str] | None,
-) -> tuple[Move, tuple[int, dict[str, float], SortedList, str] | None]:
+class StratPatternmatcher2dV1(Strategy):
     """
     A more complex strategy, which tries to find a pattern in its and
     opponent strategy move combinations, to defeat the opponent, it is
@@ -210,162 +267,201 @@ def strat_patternmatcher_2d_v1(
 
     Author: lukassta
     """
-    # ========PARAMETERS========
-    MAX_SUBLIST_LENGTH = 4
-    BASE_SUBLIST_SCORE = 2
-    LETTER_SCORE_MULT = 9
-    # ==========================
 
-    if context is None:
-        context = (0, {}, SortedList(), "")
+    def __init__(
+        self,
+        max_sublist_length: int = 4,
+        base_sublist_score: int = 2,
+        letter_score_mult: int = 9,
+    ) -> None:
+        super().__init__()
 
-    iteration: int
-    rated_substrings: dict[str, float]
-    sorted_substrings: SortedList
-    move_pair_string: str
-    iteration, rated_substrings, sorted_substrings, move_pair_string = context
+        self.name: str = "patternmatcher_2d"
 
-    move_pair_list: list[tuple[Move, Move]] = list(
-        zip(my_moves[iteration:], opponent_moves[iteration:])
-    )
-    move_pair_string += move_pair_list_to_str(move_pair_list)
+        self.max_sublist_length: int = max_sublist_length
+        self.base_sublist_score: int = base_sublist_score
+        self.letter_score_mult: int = letter_score_mult
 
-    iteration, rated_substrings, sorted_substrings = get_rated_substrings_v1(
-        move_pair_string,
-        min_lenght=1,
-        max_lenght=MAX_SUBLIST_LENGTH,
-        base_score=BASE_SUBLIST_SCORE,
-        letter_score_mult=LETTER_SCORE_MULT,
-        context=(iteration, rated_substrings, sorted_substrings),
-    )
+        self.iteration: int = 0
+        self.rated_substrings: dict[str, float] = {}
+        self.sorted_substrings: SortedList = SortedList()
+        self.move_pair_string: str = ""
 
-    for _, substring in reversed(sorted_substrings):  # pyright: ignore[reportUnknownVariableType]
-        if is_suffix(move_pair_string, substring[:-1]):  # pyright: ignore[reportUnknownArgumentType]
-            predicted_move: Move = LETTER_TO_MOVE_PAIR[substring[-1]][1]
-            counter_move: Move = get_counter(predicted_move)
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        self.move_pair_list: list[tuple[Move, Move]] = list(
+            zip(my_moves[self.iteration :], opponent_moves[self.iteration :])
+        )
+        self.move_pair_string += move_pair_list_to_str(self.move_pair_list)
 
-            return counter_move, (
-                iteration,
-                rated_substrings,
-                sorted_substrings,
-                move_pair_string,
+        self.iteration, self.rated_substrings, self.sorted_substrings = (
+            get_rated_substrings_v1(
+                self.move_pair_string,
+                min_lenght=1,
+                max_lenght=self.max_sublist_length,
+                base_score=self.base_sublist_score,
+                letter_score_mult=self.letter_score_mult,
+                context=(self.iteration, self.rated_substrings, self.sorted_substrings),
             )
+        )
 
-    return get_random_move(), (
-        iteration,
-        rated_substrings,
-        sorted_substrings,
-        move_pair_string,
-    )
+        for _, substring in reversed(self.sorted_substrings):  # pyright: ignore[reportUnknownVariableType]
+            if is_suffix(self.move_pair_string, substring[:-1]):  # pyright: ignore[reportUnknownArgumentType]
+                predicted_move: Move = LETTER_TO_MOVE_PAIR[substring[-1]][1]
+
+                return self.get_counter(predicted_move)
+
+        return self.get_random_move()
 
 
-def strat_R2P2S6(
-    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
-) -> tuple[Move, Any | None]:
+class StratR2P2S6(Strategy):
     """
     Plays randomly in a 2:2:6 ratio
     """
-    r = random.random()
-    if r < 0.2:
-        return Move.ROCK, None
-    elif r < 0.4:
-        return Move.PAPER, None
-    else:
-        return Move.SCISSORS, None
+
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.name: str = "r2p2s6"
+
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        r = random.random()
+        if r < 0.2:
+            return Move.ROCK
+        elif r < 0.4:
+            return Move.PAPER
+        else:
+            return Move.SCISSORS
 
 
-def strat_random(
-    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
-) -> tuple[Move, Any | None]:
+class StratRandom(Strategy):
     """
     A primitive strategy which fully randomizes its moves, it is
     interesting that this strategy is unexploitable, it will have
     an equal score with all other strategies
     """
 
-    return get_random_move(), None
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.name: str = "random"
+
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        return self.get_random_move()
 
 
-def strat_rock_only(
-    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
-) -> tuple[Move, Any | None]:
+class StratRockOnly(Strategy):
     """
     A primitive and bad strategy, that only plays rock
     """
 
-    return Move.ROCK, None
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.name: str = "rock"
+
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        return Move.ROCK
 
 
-def strat_rock_or_paper(
-    my_move: MoveHistory, opponent_move: MoveHistory, context: Any | None
-) -> tuple[Move, Any | None]:
+class StratRockOrPaper(Strategy):
     """
     A primitive strategy which plays rock or scissors randomly,
     a twist on random_strat, but should be way worse
     """
 
-    return random.choice([Move.ROCK, Move.PAPER]), None
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.name: str = "rock_paper"
+
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        return random.choice([Move.ROCK, Move.PAPER])
 
 
-def strat_RPS_cyclic(
-    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
-) -> tuple[Move, Any | None]:
+class StratRPSCyclic(Strategy):
     """
     Plays Rock->Paper->Scissors in a cycle
     """
 
-    return Move(len(my_moves) % 3), None
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.name: str = "cyclic"
+
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        return Move(len(my_moves) % 3)
 
 
-def strat_scissors_only(
-    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
-) -> tuple[Move, Any | None]:
+class StratScissorsOnly(Strategy):
     """
     A primitive and bad strategy, that only plays scissors
     """
 
-    return Move.SCISSORS, None
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.name: str = "scissors"
+
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        return Move.SCISSORS
 
 
-def strat_beats_op_distribution(
-    my_moves: MoveHistory, opponent_moves: MoveHistory, context: Any | None
-) -> tuple[Move, Any | None]:
+class StratBeatsOpDistribution(Strategy):
     """
     Plays a move that beats a move randomly chosen from the distribution
     of opponents moves
     """
-    if not context:
-        context = {Move.ROCK: 0, Move.PAPER: 0, Move.SCISSORS: 0}
-        return get_random_move(), context
 
-    context[opponent_moves[-1]] += 1
-    n: int = len(opponent_moves)
-    weights: list[float] = list(i / n for i in context.values())
+    def __init__(self) -> None:
+        super().__init__()
 
-    return (
-        get_counter(random.choices(list(Move), weights=weights, k=1)[0]),
-        context,
-    )
+        self.name: str = "beats_distribution"
+
+        self.appearance_count: dict[Move, int] = {
+            Move.ROCK: 0,
+            Move.PAPER: 0,
+            Move.SCISSORS: 0,
+        }
+
+    @override
+    def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        if len(opponent_moves) == 0:
+            return self.get_random_move()
+
+        self.appearance_count[opponent_moves[-1]] += 1
+
+        predicted_move: Move = random.choices(
+            list(Move), weights=list(self.appearance_count.values()), k=1
+        )[0]
+
+        return self.get_counter(predicted_move)
 
 
 group_bad: list[Strategy] = [
-    strat_rock_only,
-    strat_scissors_only,
-    strat_paper_only,
+    StratRockOnly(),
+    StratScissorsOnly(),
+    StratPaperOnly(),
 ]
 group_random: list[Strategy] = [
-    strat_random,
-    strat_R2P2S6,
-    strat_rock_or_paper,
+    StratRandom(),
+    StratR2P2S6(),
+    StratRockOrPaper(),
 ]
 group_primitive: list[Strategy] = [
-    strat_RPS_cyclic,
-    strat_beats_last,
-    strat_beats_modal,
-    strat_beats_op_distribution,
+    StratRPSCyclic(),
+    StratBeatsLast(),
+    StratBeatsModal(),
+    StratBeatsOpDistribution(),
 ]
-group_meta: list[Strategy] = [strat_beats_last_meta1]
+group_meta: list[Strategy] = [StratBeatsLastMeta1()]
 group_pattern: list[Strategy] = [
-    strat_patternmatcher_1d_v1,
-    strat_patternmatcher_2d_v1,
+    StratPatternmatcher1dV1(),
+    StratPatternmatcher2dV1(),
 ]
