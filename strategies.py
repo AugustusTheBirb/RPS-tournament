@@ -1,3 +1,4 @@
+import bisect
 import random
 from abc import ABC, abstractmethod
 from collections import Counter
@@ -10,7 +11,6 @@ from utils import (
     LETTER_TO_MOVE_PAIR,
     Move,
     MoveHistory,
-    get_rated_substrings_v1,
     is_suffix,
     move_list_to_str,
     move_pair_list_to_str,
@@ -36,8 +36,6 @@ class Strategy(ABC):
         Returns:
             move: A move this strategy will make next
         """
-
-        pass
 
     @staticmethod
     def get_counter_move(move: Move, level: int = 1) -> Move:
@@ -112,24 +110,24 @@ class StratBeatsLastMeta1(Strategy):
 
         self.name: str = "beats_last_meta"
 
+        self.evaluated_move_count: int = 50
+        self.meta_move_threshhold: int = 5
+
     @override
     def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
-        meta_flag: bool = False
 
-        if len(opponent_moves) == 0:
+        if len(opponent_moves) <= self.evaluated_move_count:
             return self.get_first_move()
 
-        if len(opponent_moves) >= 50:
-            my_score_50: int = resolve_move_lists(
-                list(my_moves[-50:-1]), list(opponent_moves[-50:-1])
-            )[0]
-            if my_score_50 < 5:
-                meta_flag = True
+        my_evaluated_move_score: int = resolve_move_lists(
+            list(my_moves[-self.evaluated_move_count : -1]),
+            list(opponent_moves[-self.evaluated_move_count : -1]),
+        )[0]
 
-        if meta_flag:
+        if my_evaluated_move_score < self.meta_move_threshhold:
             return self.get_counter_move(my_moves[-1], level=2)
-        else:
-            return self.get_counter_move(opponent_moves[-1])
+
+        return self.get_counter_move(opponent_moves[-1])
 
 
 class StratBeatsModal(Strategy):
@@ -149,7 +147,7 @@ class StratBeatsModal(Strategy):
 
         most_common_move: Move
         most_common_move, _ = sorted(
-            list(Counter(opponent_moves).items()), key=lambda x: x[1]
+            Counter(opponent_moves).items(), key=lambda x: x[1]
         )[-1]
 
         return self.get_counter_move(most_common_move)
@@ -185,6 +183,7 @@ class StratPatternBeater(Strategy):
         self.name: str = "pattern_beater"
 
         self.pattern_length: int = pattern_length
+        self.first_random_move_count: int = 10
 
         self.my_list: list[Move] = []
         self.patterns: dict[tuple[Move, ...], dict[Move, int]] = {}
@@ -206,7 +205,7 @@ class StratPatternBeater(Strategy):
 
             self.my_list.append(new_move)
 
-        if 10 < len(my_moves):
+        if self.first_random_move_count < len(my_moves):
             if np.all(opponent_moves[-self.pattern_length :] == opponent_moves[-1]):
                 return self.get_counter_move(opponent_moves[-1])
 
@@ -215,17 +214,106 @@ class StratPatternBeater(Strategy):
 
             predicted_move: Move
             predicted_move, _ = sorted(
-                list(move_appearance_count.items()), key=lambda x: x[1]
+                move_appearance_count.items(), key=lambda x: x[1]
             )[-1]
 
-            return self.get_counter_move(
-                predicted_move, level=2
-            )
+            return self.get_counter_move(predicted_move, level=2)
 
         return self.get_random_move()
 
 
-class StratPatternmatcher1dV1(Strategy):
+class PatternmatcherStrategyV1(Strategy, ABC):
+    """
+    An interface for patternmatcher v1 strategies
+
+    Author: lukassta
+    """
+
+    def __init__(
+        self,
+        min_sublist_length: int = 1,
+        max_sublist_length: int = 4,
+        base_sublist_score: int = 1,
+        letter_score_mult: int = 3,
+    ) -> None:
+        super().__init__()
+
+        self.name: str = "patternmatcher_1d"
+
+        self.min_sublist_length: int = min_sublist_length
+        self.max_sublist_length: int = max_sublist_length
+        self.base_sublist_score: int = base_sublist_score
+        self.letter_score_mult: int = letter_score_mult
+
+        self.processed_move_count: int = 0
+        self.rated_substrings: dict[str, float] = {}
+        self.sorted_substrings: list[tuple[float, str]] = []
+        self.move_string: str = ""
+
+    def update_rated_substrings(
+        self,
+        superstring: str,
+    ) -> None:
+        """
+        Returns all substrings in a string rated by occurance
+        chance
+
+        Score calculations logic:
+        score (per occurance)= base + letter_count ^ mult
+
+        it tries to ballance shorter letter combinations with
+        longer ones
+
+        R will be 3 times more common that RR
+        RR will be 3 times more common that RRR
+
+        thus a sane letter_score_mult=4, because it slightly
+        favours longer substrings
+
+        Args:
+            string: a string to find all substrings
+            min_lenght: minimum length of substrings
+            max_lenght: maximum length of substrings
+            base_score: score given to a substring
+            letter_score_mult: multiplier of the base score
+                for each letter
+            context: An int of previoulsy evaluated letters count,
+                a dict of perviously found substrings and their
+                scores and a sorted list of substrins and scores,
+                purelyan optimisation
+        Returns:
+            evaluated_moves: An int of previoulsy evaluated letter count
+            rated_substrings: A dict of found substrings as keys, and scores as values
+            sorted_substrings: A SortedList of score and substring tuples
+        """
+
+        for i in range(self.processed_move_count, len(superstring) + 1):
+            for letter_count in range(
+                self.min_sublist_length, self.max_sublist_length + 1
+            ):
+                if i - letter_count < 0:
+                    continue
+
+                substring = superstring[i - letter_count : i]
+                score = self.base_sublist_score + self.letter_score_mult**letter_count
+
+                if substring in self.rated_substrings:
+                    self.sorted_substrings.remove(
+                        (self.rated_substrings[substring], substring)
+                    )
+                    self.rated_substrings[substring] -= score
+                else:
+                    self.rated_substrings[substring] = -score
+
+                bisect.insort(
+                    self.sorted_substrings,
+                    (self.rated_substrings[substring], substring),
+                )
+
+        self.processed_move_count = len(superstring)
+
+
+class StratPatternmatcher1dV1(PatternmatcherStrategyV1):
     """
     A more complex strategy, which tries to find a pattern in the
     opponets moves, to defeat the opponent, it is quite dependant
@@ -236,42 +324,33 @@ class StratPatternmatcher1dV1(Strategy):
 
     def __init__(
         self,
+        min_sublist_length: int = 1,
         max_sublist_length: int = 4,
         base_sublist_score: int = 1,
         letter_score_mult: int = 3,
     ) -> None:
-        super().__init__()
+        super().__init__(
+            min_sublist_length=min_sublist_length,
+            max_sublist_length=max_sublist_length,
+            base_sublist_score=base_sublist_score,
+            letter_score_mult=letter_score_mult,
+        )
 
         self.name: str = "patternmatcher_1d"
 
-        self.max_sublist_length: int = max_sublist_length
-        self.base_sublist_score: int = base_sublist_score
-        self.letter_score_mult: int = letter_score_mult
-
-        self.iteration: int = 0
-        self.rated_substrings: dict[str, float] = {}
-        self.sorted_substrings: list[tuple[float, str]] = []
-        self.opponent_move_string: str = ""
-
     @override
     def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
-        self.opponent_move_string += move_list_to_str(
-            list(opponent_moves[self.iteration :])
+        self.move_string: str
+        self.move_string += move_list_to_str(
+            list(opponent_moves[self.processed_move_count :])
         )
 
-        self.iteration, self.rated_substrings, self.sorted_substrings = (
-            get_rated_substrings_v1(
-                self.opponent_move_string,
-                min_lenght=1,
-                max_lenght=self.max_sublist_length,
-                base_score=self.base_sublist_score,
-                letter_score_mult=self.letter_score_mult,
-                context=(self.iteration, self.rated_substrings, self.sorted_substrings),
-            )
+        self.update_rated_substrings(
+            self.move_string,
         )
 
         for _, substring in self.sorted_substrings:
-            if is_suffix(self.opponent_move_string, substring[:-1]):
+            if is_suffix(self.move_string, substring[:-1]):
                 predicted_move: Move = LETTER_TO_MOVE[substring[-1]]
 
                 return self.get_counter_move(predicted_move)
@@ -279,7 +358,7 @@ class StratPatternmatcher1dV1(Strategy):
         return self.get_random_move()
 
 
-class StratPatternmatcher2dV1(Strategy):
+class StratPatternmatcher2dV1(PatternmatcherStrategyV1):
     """
     A more complex strategy, which tries to find a pattern in its and
     opponent strategy move combinations, to defeat the opponent, it is
@@ -290,43 +369,38 @@ class StratPatternmatcher2dV1(Strategy):
 
     def __init__(
         self,
+        min_sublist_length: int = 1,
         max_sublist_length: int = 4,
         base_sublist_score: int = 2,
         letter_score_mult: int = 9,
     ) -> None:
-        super().__init__()
+        super().__init__(
+            min_sublist_length=min_sublist_length,
+            max_sublist_length=max_sublist_length,
+            base_sublist_score=base_sublist_score,
+            letter_score_mult=letter_score_mult,
+        )
 
         self.name: str = "patternmatcher_2d"
-
-        self.max_sublist_length: int = max_sublist_length
-        self.base_sublist_score: int = base_sublist_score
-        self.letter_score_mult: int = letter_score_mult
-
-        self.iteration: int = 0
-        self.rated_substrings: dict[str, float] = {}
-        self.sorted_substrings: list[tuple[float, str]] = []
-        self.move_pair_string: str = ""
 
     @override
     def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
         self.move_pair_list: list[tuple[Move, Move]] = list(
-            zip(my_moves[self.iteration :], opponent_moves[self.iteration :])
-        )
-        self.move_pair_string += move_pair_list_to_str(self.move_pair_list)
-
-        self.iteration, self.rated_substrings, self.sorted_substrings = (
-            get_rated_substrings_v1(
-                self.move_pair_string,
-                min_lenght=1,
-                max_lenght=self.max_sublist_length,
-                base_score=self.base_sublist_score,
-                letter_score_mult=self.letter_score_mult,
-                context=(self.iteration, self.rated_substrings, self.sorted_substrings),
+            zip(
+                my_moves[self.processed_move_count :],
+                opponent_moves[self.processed_move_count :],
+                strict=True,
             )
+        )
+        self.move_string: str
+        self.move_string += move_pair_list_to_str(self.move_pair_list)
+
+        self.update_rated_substrings(
+            self.move_string,
         )
 
         for _, substring in self.sorted_substrings:
-            if is_suffix(self.move_pair_string, substring[:-1]):
+            if is_suffix(self.move_string, substring[:-1]):
                 predicted_move: Move = LETTER_TO_MOVE_PAIR[substring[-1]][1]
 
                 return self.get_counter_move(predicted_move)
@@ -346,10 +420,14 @@ class StratR2P2S6(Strategy):
 
     @override
     def make_a_move(self, my_moves: MoveHistory, opponent_moves: MoveHistory) -> Move:
+        rock_chance: float = 0.2
+        paper_chance: float = 0.2
+        # scissors_chance = 0.6
+
         r = random.random()
-        if r < 0.2:
+        if r < rock_chance:
             return Move.ROCK
-        elif r < 0.4:
+        elif r < rock_chance + paper_chance:
             return Move.PAPER
         else:
             return Move.SCISSORS
@@ -481,7 +559,7 @@ group_primitive: list[Strategy] = [
     StratBeatsOpDistribution(),
 ]
 group_meta: list[Strategy] = [StratBeatsLastMeta1()]
-group_pattern: list[Strategy] = [
-    StratPatternmatcher1dV1(),
-    StratPatternmatcher2dV1(),
-]
+# group_pattern: list[Strategy] = [
+#     StratPatternmatcher1dV1(),
+#     StratPatternmatcher2dV1(),
+# ]

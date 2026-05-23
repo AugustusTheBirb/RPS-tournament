@@ -1,4 +1,3 @@
-import bisect
 from collections.abc import Sequence
 from enum import IntEnum
 from typing import Any
@@ -35,72 +34,6 @@ MOVE_PAIR_LETTERS = {
 LETTER_TO_MOVE_PAIR = {v: k for k, v in MOVE_PAIR_LETTERS.items()}
 
 MoveHistory = NDArray[np.object_]
-
-
-def get_rated_substrings_v1(
-    string: str,
-    *,
-    min_lenght: int,
-    max_lenght: int,
-    base_score: float,
-    letter_score_mult: float,
-    context: tuple[int, dict[str, float], list[tuple[float, str]]],
-) -> tuple[int, dict[str, float], list[tuple[float, str]]]:
-    """
-    Returns all substrings in a string rated by occurance
-    chance
-
-    Score calculations logic:
-    score (per occurance)= base + letter_count ^ mult
-
-    it tries to ballance shorter letter combinations with
-    longer ones
-
-    R will be 3 times more common that RR
-    RR will be 3 times more common that RRR
-
-    thus a sane letter_score_mult=4, because it slightly
-    favours longer substrings
-
-    Args:
-        string: a string to find all substrings
-        min_lenght: minimum length of substrings
-        max_lenght: maximum length of substrings
-        base_score: score given to a substring
-        letter_score_mult: multiplier of the base score
-            for each letter
-        context: An int of previoulsy evaluated letters count,
-            a dict of perviously found substrings and their
-            scores and a sorted list of substrins and scores,
-            purelyan optimisation
-    Returns:
-        evaluated_moves: An int of previoulsy evaluated letter count
-        rated_substrings: A dict of found substrings as keys, and scores as values
-        sorted_substrings: A SortedList of score and substring tuples
-    """
-    evaluated_moves: int
-    rated_substrings: dict[str, float]
-    sorted_substrings: list[tuple[float, str]]
-
-    evaluated_moves, rated_substrings, sorted_substrings = context
-
-    for i in range(evaluated_moves, len(string) + 1):
-        for letter_count in range(min_lenght, max_lenght + 1):
-            if i - letter_count < 0:
-                continue
-
-            substring = string[i - letter_count : i]
-            score = base_score + letter_score_mult**letter_count
-
-            if substring in rated_substrings:
-                sorted_substrings.remove((rated_substrings[substring], substring))
-                rated_substrings[substring] -= score
-            else:
-                rated_substrings[substring] = -score
-
-            bisect.insort(sorted_substrings, (rated_substrings[substring], substring))
-
-    return len(string), rated_substrings, sorted_substrings
 
 
 def is_suffix(base: Sequence[Any], suffix: Sequence[Any]) -> bool:

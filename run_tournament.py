@@ -140,11 +140,17 @@ def simulate_tournament(
         )
         strategy_times[strategy_2.name] += time_2 / repeat_count / game_count
 
-    df_results: DataFrame = pd.Series(strategy_matchup_scores).unstack()
+    # df_results: DataFrame = pd.Series(strategy_matchup_scores).unstack()
+    df_results: DataFrame = (
+        pd.Series(strategy_matchup_scores, name="scores")
+        .rename_axis(index=["strategy", "opponent"])
+        .reset_index()
+        .pivot_table(index="strategy", columns="opponent", values="scores")
+    )
     df_results["average_score"] = df_results.mean(axis=1)
     df_results = df_results.round(1)
-    df_results.sort_values(by="average_score", inplace=True, ascending=False)
-    col_order = [c for c in df_results.index] + ["average_score"]
+    df_results = df_results.sort_values(by="average_score", ascending=False)
+    col_order = [*df_results.index, "average_score"]
     df_results = df_results[col_order]
 
     df_times: DataFrame = pd.DataFrame.from_dict(
@@ -155,8 +161,6 @@ def simulate_tournament(
 
 
 def plot_results(df_results: pd.DataFrame):
-    import matplotlib.pyplot as plt
-
     fig, (ax1, ax2) = plt.subplots(
         1, 2, figsize=(12, 6), gridspec_kw={"width_ratios": [3, 1]}
     )
@@ -182,7 +186,9 @@ if __name__ == "__main__":
     strategy_dict: dict[str, Strategy] = {
         name: obj()
         for name, obj in vars(strategies).items()
-        if name != "Strategy" and inspect.isclass(obj) and issubclass(obj, Strategy)
+        if inspect.isclass(obj)
+        and not inspect.isabstract(obj)
+        and issubclass(obj, Strategy)
     }
     group_dict: dict[str, list[Strategy]] = {
         name: obj for name, obj in vars(strategies).items() if name[:6] == "group_"
@@ -204,8 +210,8 @@ if __name__ == "__main__":
         "-c",
         "--competitors",
         help="list of strategies or strategy groups that compete in the tournament"
-        + f"\ngroups: {list(group_dict.keys())}"
-        + f"\nstrategies: {list(strategy_dict.keys())}",
+        f"\ngroups: {list(group_dict.keys())}"
+        f"\nstrategies: {list(strategy_dict.keys())}",
         nargs="+",
     )
     args = parser.parse_args()

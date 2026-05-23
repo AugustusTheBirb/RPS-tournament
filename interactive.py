@@ -50,13 +50,13 @@ if __name__ == "__main__":
     strategy_context: Any | None = None
     strategy_move: Move
 
-    quit: bool = False
+    quit_loop: bool = False
     for i in range(1000):
         while True:
             command: str = input("> ").lower()
 
             if command == "q":
-                quit = True
+                quit_loop = True
                 break
             elif command == "r":
                 player_move = Move.ROCK
@@ -74,7 +74,7 @@ if __name__ == "__main__":
                 print("Unknown command")
                 continue
 
-        if quit:
+        if quit_loop:
             break
 
         strategy_move = strategy.make_a_move(strategy_history[:i], player_history[:i])

@@ -1,9 +1,13 @@
 [project]
 name = "rps-tournament"
 version = "0.1.0"
-description = "A tournament where bots compete in rock-paper-scissors matches, and are scores on perfomance"
+description = "A tournament where bots compete in iterated rock-paper-scissors matches."
 readme = "README.md"
-requires-python = ">=3.14"
+authors = [
+    { name = "Augustas Rinkevičius" },
+    { name = "Lukas Stavaris", email = "programming@stavarisgmail.com" },
+]
+requires-python = ">=3.12"
 dependencies = [
     "basedpyright>=1.39.5",
     "matplotlib>=3.10.9",
@@ -19,5 +23,58 @@ dependencies = [
 typeCheckingMode = "recommended"
 reportAny = false
 reportExplicitAny = false
+reportImplicitStringConcatenation = false
 reportMissingTypeStubs = false
 reportUnknownMemberType = false
+
+[tool.ruff]
+target-version = "py314"
+output-format = "full"
+lint.select = [
+  # https://beta.ruff.rs/docs/rules
+  "A",     # flake8-builtins
+  "ARG",   # flake8-unused-arguments
+  "ASYNC", # flake8-async
+  "B",     # flake8-bugbear
+  "BLE",   # flake8-blind-except
+  "C4",    # flake8-comprehensions
+  "C90",   # McCabe cyclomatic complexity
+  "DJ",    # flake8-django
+  "DTZ",   # flake8-datetimez
+  "E",     # pycodestyle
+  "EM",    # flake8-errmsg
+  "EXE",   # flake8-executable
+  "F",     # Pyflakes
+  "FA",    # flake8-future-annotations
+  "FLY",   # flynt
+  "G",     # flake8-logging-format
+  "I",     # isort
+  "ICN",   # flake8-import-conventions
+  "INP",   # flake8-no-pep420
+  "INT",   # flake8-gettext
+  "ISC",   # flake8-implicit-str-concat
+  "N",     # pep8-naming
+  "NPY",   # NumPy-specific rules
+  "PD",    # pandas-vet
+  "PGH",   # pygrep-hooks
+  "PIE",   # flake8-pie
+  "PL",    # Pylint
+  "PT",    # flake8-pytest-style
+  "PYI",   # flake8-pyi
+  "RSE",   # flake8-raise
+  "RUF",   # Ruff-specific rules
+  "S",     # flake8-bandit
+  "SIM",   # flake8-simplify
+  "SLF",   # flake8-self
+  "T10",   # flake8-debugger
+  "TD",    # flake8-todos
+  "TID",   # flake8-tidy-imports
+  "UP",    # pyupgrade
+  "W",     # pycodestyle
+  "YTT",   # flake8-2020
+]
+lint.ignore = [
+  "S101",    # Use of `assert` detected -- DO NOT FIX
+  "S311",    # Standard pseudo-random generators are not suitable for cryptographic purposes
+  "SIM300",  # Yoda conditions
+]
