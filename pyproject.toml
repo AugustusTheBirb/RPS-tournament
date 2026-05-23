@@ -4,19 +4,22 @@ version = "0.1.0"
 description = "A tournament where bots compete in iterated rock-paper-scissors matches."
 readme = "README.md"
 authors = [
-    { name = "Augustas Rinkevičius" },
-    { name = "Lukas Stavaris", email = "programming@stavarisgmail.com" },
+  { name = "Augustas Rinkevičius" },
+  { name = "Lukas Stavaris", email = "programming@stavarisgmail.com" },
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "basedpyright>=1.39.5",
-    "matplotlib>=3.10.9",
-    "matplotlib-stubs>=0.3.11",
-    "numpy>=2.4.5",
-    "pandas>=3.0.3",
-    "pandas-stubs>=3.0.0.260204",
-    "ruff>=0.15.13",
-    "sortedcontainers>=2.4.0",
+  "matplotlib>=3.10.9",
+  "numpy>=2.4.5",
+  "pandas>=3.0.3",
+]
+
+[dependency-groups]
+dev = [
+  "basedpyright>=1.39.5",
+  "matplotlib-stubs>=0.3.11",
+  "pandas-stubs>=3.0.0.260204",
+  "ruff>=0.15.13",
 ]
 
 [tool.basedpyright]

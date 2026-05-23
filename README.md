@@ -60,6 +60,7 @@ You can also try playing against the strategies yourself via the interactive.py 
 
 Before submittintg run this, to format and check your code:
 ```bash
+uv sync --group dev
 uv run ruff format
 uv run ruff check
 uv run basedpyright
